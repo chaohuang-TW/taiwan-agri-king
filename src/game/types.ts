@@ -86,3 +86,93 @@ export interface CollectionGoal {
   bonusValue: number;
   condition: CollectionGoalCondition;
 }
+
+export type RandomSource = () => number;
+
+export type GamePhase =
+  | 'awaiting-roll'
+  | 'moving'
+  | 'awaiting-purchase'
+  | 'awaiting-sale'
+  | 'awaiting-transport'
+  | 'awaiting-turn-end'
+  | 'game-over';
+
+export interface PlayerState {
+  id: string;
+  name: string;
+  position: number;
+  funds: number;
+  productIds: string[];
+}
+
+export interface MovementPresentation {
+  startPosition: number;
+  dice: number;
+  path: number[];
+  stepIndex: number;
+  destinationPosition: number;
+}
+
+export interface MarketDeckState {
+  drawPile: string[];
+  discardPile: string[];
+  activeCardId: string | null;
+}
+
+export type PurchaseSource = 'production' | 'farmers-association' | 'fishers-association';
+
+export type PendingAction =
+  | {
+      kind: 'purchase';
+      tileId: string;
+      productIds: string[];
+      source: PurchaseSource;
+    }
+  | { kind: 'sale'; tileId: string }
+  | { kind: 'transport'; tileId: string; destinationIds: string[] }
+  | {
+      kind: 'island-purchase';
+      sourceTileId: string;
+      destinationTileId: string;
+      productIds: string[];
+    };
+
+export interface TurnSummary {
+  title: string;
+  lines: string[];
+}
+
+export interface ScoreBreakdown {
+  productValue: number;
+  collectionBonus: number;
+  fundsBonus: number;
+  total: number;
+}
+
+export interface RankedPlayer {
+  playerId: string;
+  playerName: string;
+  rank: number;
+  score: ScoreBreakdown;
+  funds: number;
+  productCount: number;
+  completedGoalIds: string[];
+}
+
+export interface GameState {
+  phase: GamePhase;
+  round: number;
+  season: Season;
+  players: PlayerState[];
+  currentPlayerIndex: number;
+  marketDeck: MarketDeckState;
+  marketCardUsageByPlayer: string[];
+  movement: MovementPresentation | null;
+  pendingAction: PendingAction | null;
+  temporaryDestinationId: string | null;
+  lastDiceRoll: number | null;
+  turnSummary: TurnSummary | null;
+  completed: boolean;
+  rankings: RankedPlayer[] | null;
+}

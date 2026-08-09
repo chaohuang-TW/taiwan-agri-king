@@ -35,10 +35,10 @@ app.innerHTML = `
   <main id="top">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow">Phase 1 資料基礎</p>
+        <p class="eyebrow">Phase 2 核心引擎</p>
         <h1 id="hero-title">《臺灣農產王》<span>環島產地爭霸戰</span></h1>
         <p class="hero-subtitle">走臺灣・認產地・買農產・拚產值</p>
-        <a class="primary-link" href="#data-preview">查看資料預覽</a>
+        <a class="primary-link" href="./game.html">開啟核心引擎測試</a>
       </div>
       <div class="route-preview" aria-label="環島資料路線預覽">
         <div class="route-island">
@@ -102,8 +102,8 @@ app.innerHTML = `
 
     <section class="foundation-note" aria-labelledby="foundation-title">
       <div>
-        <h2 id="foundation-title">這一階段只把資料做對</h2>
-        <p>目前尚未提供擲骰、棋子移動、CPU、市場結算或完整遊戲畫面。</p>
+        <h2 id="foundation-title">核心遊戲規則已可完整運行</h2>
+        <p>正式臺灣地圖介面開發中；目前測試頁只用來驗證純TypeScript引擎。</p>
       </div>
       <dl>
         <div><dt>縣市</dt><dd>${COUNTIES.length}</dd></div>

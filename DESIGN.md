@@ -8,9 +8,19 @@
 
 任何縣市內容必須由 `countyId`、`productIds` 或其他正式關聯資料決定。資料驗證在啟動、單元測試與CI中執行，錯誤引用直接拋出具體訊息。
 
-## 遊戲引擎與UI分離
+## Core Engine Architecture
 
-未來 `src/game` 負責純函式狀態轉換、規則與隨機來源注入；UI只呈現狀態並送出玩家意圖。DOM、動畫與音效不得進入規則函式，規則測試也不得依賴瀏覽器。
+`src/game` 以純資料 `GameState` 與同步state transition實作核心規則。每個phase只接受合法action，函式回傳新state，不依賴DOM、動畫、音效或Timer；UI只根據state呈現並送出玩家意圖。
+
+- RNG透過 `RandomSource` 注入，正式使用 `Math.random`，測試可固定或seed。
+- `MovementPresentation` 保留逐格path與stepIndex，最後一步才提交玩家position。
+- `PendingAction` 是採購、出售、交通與離島採購的discriminated union。
+- 主環島路線0至26與離島27至29分離；離島只作為交通格的暫時目的地。
+- `MarketDeckState` 分開管理抽牌、棄牌與唯一active卡，並支援安全重洗。
+- 收藏selector純粹依玩家持有的穩定product ID判斷12項公開任務。
+- 最終計分集中處理產品現值、收藏、資金換分與完整平手順序。
+
+`game.html` 是Phase 2最小測試介面，不是正式臺灣地圖UI。
 
 ## 真實資料與遊戲數值分離
 
@@ -24,7 +34,7 @@
 
 ## 純靜態架構
 
-專案由Vite輸出靜態檔案，可部署至GitHub Pages。Phase 1不包含後端、資料庫、帳號、API Server、外部AI服務或即時價格來源。
+專案由Vite輸出靜態檔案，可部署至GitHub Pages。Phase 2不包含後端、資料庫、帳號、API Server、外部AI服務或即時價格來源。
 
 ## Camera預留
 
