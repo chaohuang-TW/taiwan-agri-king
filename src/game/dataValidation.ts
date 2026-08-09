@@ -26,6 +26,13 @@ const PRODUCT_CATEGORIES: ProductCategory[] = [
 ];
 const TAIWAN_REGIONS: TaiwanRegion[] = ['north', 'central', 'south', 'east', 'offshore'];
 const SEASONS: Season[] = ['spring', 'summer', 'autumn', 'winter'];
+const AGRICULTURAL_CATEGORIES: ProductCategory[] = [
+  'fruit',
+  'grain',
+  'vegetable',
+  'tea-specialty',
+  'livestock-other',
+];
 const TILE_TYPES: BoardTileType[] = [
   'production',
   'farmers-association',
@@ -234,10 +241,40 @@ function validateGoalAchievable(goal: CollectionGoal, products: Product[]): void
       break;
     case 'mixed-agri-seafood': {
       const seafood = products.filter(({ category }) => category === 'seafood').length;
-      const agriculture = products.length - seafood;
+      const agriculture = products.filter(({ category }) =>
+        AGRICULTURAL_CATEGORIES.includes(category),
+      ).length;
       assert(
         agriculture >= condition.agriCount && seafood >= condition.seafoodCount,
         `收藏任務 ${goal.id} 目前無法完成`,
+      );
+      break;
+    }
+    case 'tag-count': {
+      assert(condition.tag.trim().length > 0, `收藏任務 ${goal.id} 的tag不可為空字串`);
+      assert(
+        Number.isInteger(condition.count) && condition.count > 0,
+        `收藏任務 ${goal.id} 的count必須為正整數`,
+      );
+      const available = products.filter(({ tags }) => tags.includes(condition.tag)).length;
+      assert(
+        available >= condition.count,
+        `收藏任務 ${goal.id} 目前無法完成：tag "${condition.tag}" 只有${available}項產品，需求${condition.count}項。`,
+      );
+      break;
+    }
+    case 'distinct-counties-with-tag': {
+      assert(condition.tag.trim().length > 0, `收藏任務 ${goal.id} 的tag不可為空字串`);
+      assert(
+        Number.isInteger(condition.count) && condition.count > 0,
+        `收藏任務 ${goal.id} 的count必須為正整數`,
+      );
+      const available = new Set(
+        products.filter(({ tags }) => tags.includes(condition.tag)).map(({ countyId }) => countyId),
+      ).size;
+      assert(
+        available >= condition.count,
+        `收藏任務 ${goal.id} 目前無法完成：tag "${condition.tag}" 只有${available}個不同縣市，需求${condition.count}個。`,
       );
       break;
     }

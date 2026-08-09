@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { COUNTIES } from '../src/data/counties';
 import { PRODUCTS } from '../src/data/products';
@@ -40,6 +41,33 @@ describe('產品與縣市資料', () => {
     expect(count('tea-specialty')).toBe(7);
     expect(count('seafood')).toBe(9);
     expect(count('livestock-other')).toBe(5);
+  });
+
+  it('每項產品皆可追溯至DATA_SOURCES中的官方URL', () => {
+    const sourceDocument = readFileSync(new URL('../DATA_SOURCES.md', import.meta.url), 'utf8');
+    const rows = sourceDocument
+      .split('\n')
+      .filter(
+        (line) => line.startsWith('| ') && !line.startsWith('| 產品') && !line.startsWith('| ---'),
+      )
+      .map((line) =>
+        line
+          .split('|')
+          .slice(1, -1)
+          .map((cell) => cell.trim()),
+      );
+    const countyNameById = new Map(COUNTIES.map(({ id, name }) => [id, name]));
+
+    expect(rows).toHaveLength(PRODUCTS.length);
+    for (const product of PRODUCTS) {
+      const sourceRow = rows.find(
+        ([name, countyName]) =>
+          name === product.name && countyName === countyNameById.get(product.countyId),
+      );
+      expect(sourceRow, `${product.id} 缺少對應來源列`).toBeDefined();
+      expect(sourceRow?.[3], `${product.id} 缺少官方URL`).toMatch(/^<https:\/\/[^>]+>$/);
+      expect(product.sourceNote.trim().length).toBeGreaterThan(0);
+    }
   });
 
   it.each([

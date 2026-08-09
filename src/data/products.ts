@@ -436,7 +436,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 3,
     baseValue: 6,
     peakSeasons: ['summer', 'autumn'],
-    tags: ['seafood', 'north', 'marine'],
+    tags: ['seafood', 'north', 'marine', 'coastal'],
     sourceNote: '基隆近海漁業具鎖管漁獲；數值為遊戲平衡用途。',
   },
   {
@@ -448,7 +448,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 5,
     baseValue: 8,
     peakSeasons: ['autumn'],
-    tags: ['seafood', 'north', 'crab'],
+    tags: ['seafood', 'north', 'crab', 'coastal'],
     sourceNote: '新北北海岸具蟹類漁產；數值為遊戲平衡用途。',
   },
   {
@@ -460,7 +460,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 3,
     baseValue: 5,
     peakSeasons: ['summer'],
-    tags: ['seafood', 'central', 'aquaculture'],
+    tags: ['seafood', 'central', 'aquaculture', 'coastal'],
     sourceNote: '彰化沿海具文蛤養殖；數值為遊戲平衡用途。',
   },
   {
@@ -472,7 +472,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 3,
     baseValue: 6,
     peakSeasons: ['spring', 'summer'],
-    tags: ['seafood', 'south', 'aquaculture'],
+    tags: ['seafood', 'south', 'aquaculture', 'coastal'],
     sourceNote: '嘉義東石沿海為牡蠣養殖區；數值為遊戲平衡用途。',
   },
   {
@@ -484,7 +484,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 3,
     baseValue: 6,
     peakSeasons: ['summer', 'autumn'],
-    tags: ['seafood', 'south', 'aquaculture'],
+    tags: ['seafood', 'south', 'aquaculture', 'coastal'],
     sourceNote: '臺南沿海為虱目魚重要養殖區；數值為遊戲平衡用途。',
   },
   {
@@ -496,7 +496,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 5,
     baseValue: 8,
     peakSeasons: ['summer'],
-    tags: ['seafood', 'south', 'aquaculture'],
+    tags: ['seafood', 'south', 'aquaculture', 'coastal'],
     sourceNote: '高雄沿海具石斑魚養殖產業；數值為遊戲平衡用途。',
   },
   {
@@ -508,7 +508,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 5,
     baseValue: 8,
     peakSeasons: ['spring'],
-    tags: ['seafood', 'south', 'marine'],
+    tags: ['seafood', 'south', 'marine', 'coastal'],
     sourceNote: '屏東東港以黑鮪魚漁業聞名；數值為遊戲平衡用途。',
   },
   {
@@ -520,7 +520,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 3,
     baseValue: 6,
     peakSeasons: ['autumn', 'winter'],
-    tags: ['seafood', 'east', 'marine'],
+    tags: ['seafood', 'east', 'marine', 'coastal'],
     sourceNote: '宜蘭南方澳為鯖鰺漁業重鎮；數值為遊戲平衡用途。',
   },
   {
@@ -532,7 +532,7 @@ export const PRODUCTS: Product[] = [
     purchaseCost: 4,
     baseValue: 7,
     peakSeasons: ['summer', 'autumn'],
-    tags: ['seafood', 'offshore', 'aquaculture'],
+    tags: ['seafood', 'offshore', 'aquaculture', 'coastal'],
     sourceNote: '澎湖發展海上箱網海鱺養殖；數值為遊戲平衡用途。',
   },
 

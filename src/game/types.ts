@@ -75,7 +75,9 @@ export type CollectionGoalCondition =
   | { kind: 'distinct-regions'; count: number }
   | { kind: 'distinct-counties'; count: number }
   | { kind: 'category-diversity'; count: number }
-  | { kind: 'mixed-agri-seafood'; agriCount: number; seafoodCount: number };
+  | { kind: 'mixed-agri-seafood'; agriCount: number; seafoodCount: number }
+  | { kind: 'tag-count'; tag: string; count: number }
+  | { kind: 'distinct-counties-with-tag'; tag: string; count: number };
 
 export interface CollectionGoal {
   id: string;

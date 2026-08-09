@@ -11,9 +11,9 @@ export const COLLECTION_GOALS: CollectionGoal[] = [
   {
     id: 'taiwan-tea',
     title: '臺灣好茶',
-    description: '收藏3項茶與特色作物。',
+    description: '收藏來自3個不同縣市的茶。',
     bonusValue: 8,
-    condition: { kind: 'category-count', category: 'tea-specialty', count: 3 },
+    condition: { kind: 'distinct-counties-with-tag', tag: 'tea', count: 3 },
   },
   {
     id: 'seafood-king',
@@ -25,9 +25,9 @@ export const COLLECTION_GOALS: CollectionGoal[] = [
   {
     id: 'rice-master',
     title: '稻米達人',
-    description: '收藏4項米糧雜糧。',
+    description: '收藏來自4個不同縣市的稻米。',
     bonusValue: 7,
-    condition: { kind: 'category-count', category: 'grain', count: 4 },
+    condition: { kind: 'distinct-counties-with-tag', tag: 'rice', count: 4 },
   },
   {
     id: 'vegetable-basket',
@@ -46,16 +46,16 @@ export const COLLECTION_GOALS: CollectionGoal[] = [
   {
     id: 'coastal-journey',
     title: '海線之旅',
-    description: '收藏5項水產。',
+    description: '收藏來自4個不同縣市的沿海產品。',
     bonusValue: 10,
-    condition: { kind: 'category-count', category: 'seafood', count: 5 },
+    condition: { kind: 'distinct-counties-with-tag', tag: 'coastal', count: 4 },
   },
   {
     id: 'mountain-delicacies',
     title: '山城珍味',
-    description: '收藏4項中部產品。',
+    description: '收藏4項山城或山區特色產品。',
     bonusValue: 8,
-    condition: { kind: 'region-count', region: 'central', count: 4 },
+    condition: { kind: 'tag-count', tag: 'mountain', count: 4 },
   },
   {
     id: 'agri-and-sea',

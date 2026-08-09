@@ -16,6 +16,12 @@
 
 `sourceNote` 描述產地依據與代表性，`purchaseCost` 與 `baseValue` 只服務玩法平衡。正式價格、即時行情與官方產值不進入遊戲資料，也不以遊戲數值冒充真實統計。
 
+## 語意標籤
+
+`Product.category` 負責水果、米糧雜糧、蔬菜、茶與特色作物、水產、畜產與其他這六大主要遊戲分類。`Product.tags` 負責跨分類語意，例如 `tea`、`rice`、`mountain`、`coastal`、`tropical` 與 `indigenous`。
+
+收藏任務需要跨分類特徵時必須沿用語意標籤，不得為每一個收藏任務增加新的主分類。
+
 ## 純靜態架構
 
 專案由Vite輸出靜態檔案，可部署至GitHub Pages。Phase 1不包含後端、資料庫、帳號、API Server、外部AI服務或即時價格來源。
