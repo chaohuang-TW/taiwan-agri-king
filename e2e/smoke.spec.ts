@@ -25,7 +25,9 @@ test('資料預覽首頁可在桌機與手機正確載入', async ({ page }, tes
   await expect(page.getByText('20', { exact: true })).toBeVisible();
   await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('12輪春夏秋冬', { exact: true })).toBeVisible();
-  await expect(page.getByText('Phase 1 資料基礎', { exact: true })).toBeVisible();
+  await expect(page.getByText('Phase 2 核心引擎', { exact: true })).toBeVisible();
+  await expect(page.getByText('核心遊戲規則已可完整運行', { exact: true })).toBeVisible();
+  await expect(page.getByText(/正式臺灣地圖介面開發中/)).toBeVisible();
 
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
