@@ -2,7 +2,7 @@
 
 《臺灣農產王》是以臺灣農漁產地為主題的兒童與家庭網頁桌遊。玩家扮演農產採購王，沿環島棋盤認識產地、採購產品、觀察市場，並在12輪後以最高總產值取勝。
 
-> 目前為 Phase 2 核心引擎開發預覽。核心規則已可完整運行，正式臺灣地圖介面尚未完成。
+> 目前為 Phase 3 candidate。核心規則與正式臺灣地圖介面已完成，等待人工驗收與PR合併。
 
 ## 遊戲概念與目標
 
@@ -46,7 +46,10 @@ Coverage門檻：Statements 85%、Branches 80%、Functions 85%、Lines 85%。
 
 ## GitHub Pages
 
-開發預覽網址：<https://chaohuang-tw.github.io/taiwan-agri-king/>。`game.html` 是核心引擎測試介面，並非正式遊戲畫面。
+開發預覽網址：<https://chaohuang-tw.github.io/taiwan-agri-king/>。
+
+- `game.html`：正式遊戲介面
+- `engine-test.html`：Phase 2 核心引擎測試介面
 
 ## 資料來源聲明
 
@@ -58,8 +61,8 @@ Coverage門檻：Statements 85%、Branches 80%、Functions 85%、Lines 85%。
 
 ## Roadmap
 
-1. Phase 1 資料基礎
-2. Phase 2 核心遊戲引擎
-3. Phase 3 臺灣地圖UI
-4. Phase 4 CPU、市場與收藏
-5. Phase 5 手機UX、動畫與發布
+1. Phase 1 ✅ 資料基礎
+2. Phase 2 ✅ 核心遊戲引擎
+3. Phase 3 candidate：臺灣地圖遊戲介面
+4. Phase 4 CPU與平衡
+5. Phase 5 正式視覺與發布

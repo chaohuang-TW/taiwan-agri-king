@@ -20,7 +20,39 @@
 - 收藏selector純粹依玩家持有的穩定product ID判斷12項公開任務。
 - 最終計分集中處理產品現值、收藏、資金換分與完整平手順序。
 
-`game.html` 是Phase 2最小測試介面，不是正式臺灣地圖UI。
+`game.html` 是正式遊戲介面；Phase 2最小測試介面保留於 `engine-test.html`。
+
+## Taiwan Map Board
+
+正式棋盤由穩定的HTML節點、桌遊化臺灣SVG輪廓與30個絕對座標格組成。本島主路線0至26沿西岸向南、東岸向北形成環線；澎湖、金門、馬祖27至29位於本島外側，視覺與規則都不混入主路線。棋盤只初始化一次，後續僅更新棋子、目前格與測試資料屬性。
+
+## Board Camera
+
+`BoardCameraController` 只管理 `translate3d` 與 `scale`。全景會依viewport自動fit，聚焦倍率桌機1.72、手機1.32；目標座標經四邊clamp，無效尺寸回退identity。流程為overview、focus-player、following、arrival、returning、overview。ResizeObserver只觀察現有viewport，RAF具generation防止舊動作回寫，cleanup會取消RAF並中斷observer。
+
+## UI Presentation State
+
+`UiPresentationState` 與 `BoardCameraPresentation` 完全位於 `src/ui`，不進入 `GameState`。骰子顯示、Camera停留、交棒提示、action lock與事件卡強調皆屬presentation；採購金、位置、收藏、合法目的地與最終計分仍由Phase 2引擎決定。
+
+## Responsive Layout
+
+1280×720使用玩家、棋盤、市場收藏三欄與底部操作區。小於760px後改為單欄：回合狀態、橫滑玩家卡、全景棋盤、可折疊收藏與sticky bottom sheet。頁面本身禁止水平溢位，橫向內容只在明確的卡片scroller內發生。
+
+## Mobile Bottom Sheet
+
+手機操作區固定於viewport下緣的可視位置，主要按鈕至少44px。Camera抵達後先回到全景再解鎖操作，避免zoom狀態占用採購、出售或交通選擇空間。
+
+## Stable Board DOM
+
+`createBoardView()` 建立棋盤與所有玩家token後不再replace整棵board。每一步只更新CSS custom properties、`data-position`與目前格狀態；多人同格以1、2、3、4人的不同offset排列。
+
+## Animation Lifecycle
+
+UI延遲集中由 `scheduleUiDelay()` 管理，restart與離頁會清除timer、Camera RAF與ResizeObserver。`ui.locked` 同時保護重複擲骰、重複購買與重複結束回合，不只依賴disabled外觀。
+
+## Reduced Motion
+
+`prefers-reduced-motion: reduce` 時Camera固定 `scale(1)` 與零位移，CSS transition近乎即時；引擎仍逐次執行每個 `advanceMovementStep()`，不跳過任何遊戲狀態。
 
 ## 真實資料與遊戲數值分離
 
@@ -50,7 +82,7 @@
 </div>
 ```
 
-預定流程是「擲骰、Camera聚焦、棋子逐格移動、Camera跟拍、抵達、回到臺灣全景」。Camera只負責視覺座標轉換，不改變棋盤position或規則狀態。Phase 1不實作Camera。
+正式流程是「擲骰、Camera聚焦、棋子逐格移動、Camera跟拍、抵達、回到臺灣全景」。Camera只負責視覺座標轉換，不改變棋盤position或規則狀態。
 
 ## 手機響應式
 
