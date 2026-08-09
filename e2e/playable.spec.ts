@@ -34,6 +34,21 @@ async function waitForAction(page: Page, heading: string | RegExp): Promise<void
   await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-settled', 'true');
 }
 
+type CameraSample = {
+  position: string;
+  stepIndex: number;
+  x: number;
+  y: number;
+  scale: number;
+  tokenCenterX: number;
+  tokenCenterY: number;
+  viewportLeft: number;
+  viewportRight: number;
+  viewportTop: number;
+  viewportBottom: number;
+  tokenVisible: boolean;
+};
+
 test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ page }) => {
   const diagnostics = observePage(page);
   await page.goto('');
@@ -53,34 +68,109 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expectPageHealthy(page, diagnostics);
 });
 
-test('擲骰逐格移動並完成Camera Follow與回全景', async ({ page }) => {
+test('擲骰逐格移動、Camera實際跟拍並保持棋子可見', async ({ page }) => {
   const diagnostics = observePage(page);
   await page.goto('game.html?testMode=1&scenario=movement');
   await page.evaluate(() => {
-    const camera = document.querySelector('[data-testid="board-camera"]')!;
-    const values: string[] = [];
-    (window as typeof window & { cameraPositions: string[] }).cameraPositions = values;
+    const camera = document.querySelector<HTMLElement>('[data-testid="board-camera"]')!;
+    const token = document.querySelector<HTMLElement>('[data-testid="player-token-player-1"]')!;
+    const samples: CameraSample[] = [];
+    (window as typeof window & { cameraSamples: CameraSample[] }).cameraSamples = samples;
+
+    const sample = () => {
+      const position = camera.dataset.focusedPosition;
+      const stepIndex = Number(camera.dataset.cameraStepIndex);
+      if (!position || stepIndex < 1) return;
+      if (
+        samples.some(
+          (value) => `${value.position}:${value.stepIndex}` === `${position}:${stepIndex}`,
+        )
+      )
+        return;
+
+      const viewportRect = camera.getBoundingClientRect();
+      const tokenRect = token.getBoundingClientRect();
+      const tokenCenterX = tokenRect.left + tokenRect.width / 2;
+      const tokenCenterY = tokenRect.top + tokenRect.height / 2;
+      const tolerance = 2;
+      samples.push({
+        position,
+        stepIndex,
+        x: Number(camera.dataset.cameraX),
+        y: Number(camera.dataset.cameraY),
+        scale: Number(camera.dataset.cameraScale),
+        tokenCenterX,
+        tokenCenterY,
+        viewportLeft: viewportRect.left,
+        viewportRight: viewportRect.right,
+        viewportTop: viewportRect.top,
+        viewportBottom: viewportRect.bottom,
+        tokenVisible:
+          tokenCenterX >= viewportRect.left - tolerance &&
+          tokenCenterX <= viewportRect.right + tolerance &&
+          tokenCenterY >= viewportRect.top - tolerance &&
+          tokenCenterY <= viewportRect.bottom + tolerance,
+      });
+    };
+
     new MutationObserver(() => {
-      const position = (camera as HTMLElement).dataset.focusedPosition;
-      if (position && values.at(-1) !== position) values.push(position);
-    }).observe(camera, { attributes: true, attributeFilter: ['data-focused-position'] });
+      requestAnimationFrame(() => requestAnimationFrame(sample));
+    }).observe(camera, {
+      attributes: true,
+      attributeFilter: [
+        'data-focused-position',
+        'data-camera-x',
+        'data-camera-y',
+        'data-camera-step-index',
+      ],
+    });
   });
   await page.getByRole('button', { name: '擲骰子' }).click();
   await waitForAction(page, '選擇一個合法目的地');
-  const positions = await page.evaluate(
-    () => (window as typeof window & { cameraPositions: string[] }).cameraPositions,
+  const samples = await page.evaluate(
+    () => (window as typeof window & { cameraSamples: CameraSample[] }).cameraSamples,
   );
-  expect(positions).toEqual(expect.arrayContaining(['24', '25', '26', '0']));
-  expect(positions.indexOf('24')).toBeLessThan(positions.indexOf('25'));
-  expect(positions.indexOf('25')).toBeLessThan(positions.indexOf('26'));
-  expect(positions.indexOf('26')).toBeLessThan(positions.lastIndexOf('0'));
+  const movementSamples = [
+    ['24', 1],
+    ['25', 2],
+    ['26', 3],
+    ['0', 4],
+  ].map(([position, stepIndex]) => {
+    const value = samples.find(
+      (sample) => sample.position === position && sample.stepIndex === stepIndex,
+    );
+    expect(value, `缺少 position ${position}、step ${stepIndex} 的Camera sample`).toBeDefined();
+    return value!;
+  });
+  expect(movementSamples.map(({ position }) => position)).toEqual(['24', '25', '26', '0']);
+  for (const sample of movementSamples) {
+    expect(Number.isFinite(sample.x)).toBe(true);
+    expect(Number.isFinite(sample.y)).toBe(true);
+    expect(Number.isFinite(sample.scale)).toBe(true);
+    expect(sample.scale).toBeGreaterThan(1);
+    expect(
+      sample.tokenVisible,
+      `棋子在 position ${sample.position} 未位於 camera viewport 中：\n` +
+        `token=(${sample.tokenCenterX}, ${sample.tokenCenterY})\n` +
+        `viewport=(${sample.viewportLeft}, ${sample.viewportTop})-(${sample.viewportRight}, ${sample.viewportBottom})\n` +
+        `camera=(${sample.x}, ${sample.y})`,
+    ).toBe(true);
+  }
+  const cameraTransforms = movementSamples.map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(2)}`);
+  expect(new Set(cameraTransforms).size).toBeGreaterThanOrEqual(2);
   await expect(page.getByTestId('player-token-player-1')).toHaveAttribute('data-position', '0');
   await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-state', 'overview');
+  await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-settled', 'true');
   const cameraValues = await page.getByTestId('board-camera').evaluate((element) => ({
     x: Number((element as HTMLElement).dataset.cameraX),
     y: Number((element as HTMLElement).dataset.cameraY),
+    scale: Number((element as HTMLElement).dataset.cameraScale),
   }));
-  expect(Number.isFinite(cameraValues.x) && Number.isFinite(cameraValues.y)).toBe(true);
+  expect(
+    Number.isFinite(cameraValues.x) &&
+      Number.isFinite(cameraValues.y) &&
+      Number.isFinite(cameraValues.scale),
+  ).toBe(true);
   await expectPageHealthy(page, diagnostics);
 });
 
