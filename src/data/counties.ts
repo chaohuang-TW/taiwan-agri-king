@@ -1,0 +1,26 @@
+import type { County } from '../game/types';
+
+export const COUNTIES: County[] = [
+  { id: 'taipei', name: '臺北市', region: 'north' },
+  { id: 'new-taipei', name: '新北市', region: 'north' },
+  { id: 'keelung', name: '基隆市', region: 'north' },
+  { id: 'taoyuan', name: '桃園市', region: 'north' },
+  { id: 'hsinchu-city', name: '新竹市', region: 'north' },
+  { id: 'hsinchu-county', name: '新竹縣', region: 'north' },
+  { id: 'miaoli', name: '苗栗縣', region: 'central' },
+  { id: 'taichung', name: '臺中市', region: 'central' },
+  { id: 'changhua', name: '彰化縣', region: 'central' },
+  { id: 'nantou', name: '南投縣', region: 'central' },
+  { id: 'yunlin', name: '雲林縣', region: 'central' },
+  { id: 'chiayi-city', name: '嘉義市', region: 'south' },
+  { id: 'chiayi-county', name: '嘉義縣', region: 'south' },
+  { id: 'tainan', name: '臺南市', region: 'south' },
+  { id: 'kaohsiung', name: '高雄市', region: 'south' },
+  { id: 'pingtung', name: '屏東縣', region: 'south' },
+  { id: 'yilan', name: '宜蘭縣', region: 'east' },
+  { id: 'hualien', name: '花蓮縣', region: 'east' },
+  { id: 'taitung', name: '臺東縣', region: 'east' },
+  { id: 'penghu', name: '澎湖縣', region: 'offshore' },
+  { id: 'kinmen', name: '金門縣', region: 'offshore' },
+  { id: 'lienchiang', name: '連江縣', region: 'offshore' },
+];

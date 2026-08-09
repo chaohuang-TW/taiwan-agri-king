@@ -84,4 +84,3 @@ export interface CollectionGoal {
   bonusValue: number;
   condition: CollectionGoalCondition;
 }
-

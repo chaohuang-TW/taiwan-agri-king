@@ -1,0 +1,88 @@
+import type { CollectionGoal } from '../game/types';
+
+export const COLLECTION_GOALS: CollectionGoal[] = [
+  {
+    id: 'fruit-kingdom',
+    title: '水果王國',
+    description: '收藏4項水果。',
+    bonusValue: 7,
+    condition: { kind: 'category-count', category: 'fruit', count: 4 },
+  },
+  {
+    id: 'taiwan-tea',
+    title: '臺灣好茶',
+    description: '收藏3項茶與特色作物。',
+    bonusValue: 8,
+    condition: { kind: 'category-count', category: 'tea-specialty', count: 3 },
+  },
+  {
+    id: 'seafood-king',
+    title: '海味王',
+    description: '收藏4項水產。',
+    bonusValue: 8,
+    condition: { kind: 'category-count', category: 'seafood', count: 4 },
+  },
+  {
+    id: 'rice-master',
+    title: '稻米達人',
+    description: '收藏4項米糧雜糧。',
+    bonusValue: 7,
+    condition: { kind: 'category-count', category: 'grain', count: 4 },
+  },
+  {
+    id: 'vegetable-basket',
+    title: '蔬菜滿籃',
+    description: '收藏3項蔬菜。',
+    bonusValue: 6,
+    condition: { kind: 'category-count', category: 'vegetable', count: 3 },
+  },
+  {
+    id: 'east-goodies',
+    title: '東部好物',
+    description: '收藏4項東部產品。',
+    bonusValue: 8,
+    condition: { kind: 'region-count', region: 'east', count: 4 },
+  },
+  {
+    id: 'coastal-journey',
+    title: '海線之旅',
+    description: '收藏5項水產。',
+    bonusValue: 10,
+    condition: { kind: 'category-count', category: 'seafood', count: 5 },
+  },
+  {
+    id: 'mountain-delicacies',
+    title: '山城珍味',
+    description: '收藏4項中部產品。',
+    bonusValue: 8,
+    condition: { kind: 'region-count', region: 'central', count: 4 },
+  },
+  {
+    id: 'agri-and-sea',
+    title: '農漁雙全',
+    description: '收藏3項農產與2項水產。',
+    bonusValue: 9,
+    condition: { kind: 'mixed-agri-seafood', agriCount: 3, seafoodCount: 2 },
+  },
+  {
+    id: 'round-island-master',
+    title: '環島達人',
+    description: '收藏來自5個地區的產品。',
+    bonusValue: 10,
+    condition: { kind: 'distinct-regions', count: 5 },
+  },
+  {
+    id: 'hundred-flavors',
+    title: '百味臺灣',
+    description: '收藏5種不同類別。',
+    bonusValue: 10,
+    condition: { kind: 'category-diversity', count: 5 },
+  },
+  {
+    id: 'taiwan-agri-king',
+    title: '臺灣農產王',
+    description: '收藏來自8個不同縣市的產品。',
+    bonusValue: 12,
+    condition: { kind: 'distinct-counties', count: 8 },
+  },
+];
