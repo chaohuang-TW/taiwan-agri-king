@@ -29,7 +29,7 @@ async function expectHealthyPage(
 
 test('Basic Turn走真實引擎完成購買並切換P2', async ({ page }) => {
   const diagnostics = observePage(page);
-  await page.goto('game.html?testMode=1&scenario=basic-purchase');
+  await page.goto('engine-test.html?testMode=1&scenario=basic-purchase');
   await expect(page.getByText('Phase 2 核心引擎測試・開發中')).toBeVisible();
   await expect(page.getByText('非正式遊戲畫面・正式臺灣地圖介面尚未完成')).toBeVisible();
   await expect(page.getByTestId('round')).toHaveText('1');
@@ -51,7 +51,7 @@ test('Basic Turn走真實引擎完成購買並切換P2', async ({ page }) => {
 
 test('Round Transition完成P1與P2後換市場卡並回P1', async ({ page }) => {
   const diagnostics = observePage(page);
-  await page.goto('game.html?testMode=1&scenario=round-transition');
+  await page.goto('engine-test.html?testMode=1&scenario=round-transition');
   const originalCard = await page.getByTestId('active-card').textContent();
   const auto = page.getByRole('button', { name: '執行下一個真實引擎動作' });
   for (let action = 0; action < 8; action += 1) await auto.click();
@@ -63,7 +63,7 @@ test('Round Transition完成P1與P2後換市場卡並回P1', async ({ page }) =>
 
 test('Transport離島行程清除temporaryDestination並留在交通格', async ({ page }) => {
   const diagnostics = observePage(page);
-  await page.goto('game.html?testMode=1&scenario=transport');
+  await page.goto('engine-test.html?testMode=1&scenario=transport');
   await page.getByRole('button', { name: '擲骰' }).click();
   await page.getByRole('button', { name: '前進一步' }).click();
   await expect(page.getByTestId('position')).toHaveText('13');
@@ -71,7 +71,7 @@ test('Transport離島行程清除temporaryDestination並留在交通格', async 
   await expect(page.getByTestId('temporary-destination')).toHaveText('penghu-island-stop');
   await expect(page.getByTestId('pending-action')).toContainText('penghu-cobia');
   await page.getByRole('button', { name: '購買', exact: true }).click();
-  await expect(page.getByTestId('temporary-destination')).toHaveText('—');
+  await expect(page.getByTestId('temporary-destination')).toHaveText('無');
   await expect(page.getByTestId('position')).toHaveText('13');
   await page.getByRole('button', { name: '結束回合' }).click();
   await expect(page.getByTestId('position')).toHaveText('0');
@@ -80,7 +80,7 @@ test('Transport離島行程清除temporaryDestination並留在交通格', async 
 
 test('Game Over以真實引擎跑完12輪並顯示排名', async ({ page }) => {
   const diagnostics = observePage(page);
-  await page.goto('game.html?testMode=1&scenario=full-game');
+  await page.goto('engine-test.html?testMode=1&scenario=full-game');
   await page.getByRole('button', { name: '快速完成12輪' }).click();
   await expect(page.getByTestId('round')).toHaveText('12');
   await expect(page.getByTestId('phase')).toHaveText('game-over');

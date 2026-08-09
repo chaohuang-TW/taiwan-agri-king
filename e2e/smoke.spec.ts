@@ -1,9 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-test('資料預覽首頁可在桌機與手機正確載入', async ({ page }, testInfo) => {
+test('正式首頁可在桌機與手機正確載入', async ({ page }, testInfo) => {
   const consoleErrors: string[] = [];
   const failedAssets: string[] = [];
-
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
@@ -12,27 +11,24 @@ test('資料預覽首頁可在桌機與手機正確載入', async ({ page }, tes
   });
 
   await page.goto('');
-
   if (testInfo.project.name === 'mobile-chromium') {
     expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
   }
-
   await expect(page).toHaveTitle(/臺灣農產王/);
   await expect(page.getByRole('heading', { level: 1, name: /臺灣農產王/ })).toBeVisible();
-  await expect(page.getByText('開發中', { exact: true })).toBeVisible();
+  await expect(page.getByText('Phase 3 開發預覽', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: '開始遊戲', exact: true }).first()).toBeVisible();
   await expect(page.getByText('30', { exact: true })).toBeVisible();
-  await expect(page.getByText('48', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('48', { exact: true })).toBeVisible();
   await expect(page.getByText('20', { exact: true })).toBeVisible();
   await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('12輪春夏秋冬', { exact: true })).toBeVisible();
-  await expect(page.getByText('Phase 2 核心引擎', { exact: true })).toBeVisible();
-  await expect(page.getByText('核心遊戲規則已可完整運行', { exact: true })).toBeVisible();
-  await expect(page.getByText(/正式臺灣地圖介面開發中/)).toBeVisible();
-
-  const hasHorizontalOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
-  );
-  expect(hasHorizontalOverflow).toBe(false);
+  await expect(page.getByRole('heading', { name: '一趟看得懂，也玩得完的環島' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '核心引擎測試' })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
   expect(consoleErrors).toEqual([]);
   expect(failedAssets).toEqual([]);
 });
