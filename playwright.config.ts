@@ -12,7 +12,15 @@ export default defineConfig({
   },
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
+    {
+      name: 'mobile-chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
   ],
   webServer: {
     command: 'pnpm run preview --host 127.0.0.1',
@@ -20,4 +28,3 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
   },
 });
-
