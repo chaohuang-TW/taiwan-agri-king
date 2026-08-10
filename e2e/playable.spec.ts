@@ -477,12 +477,11 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
   await page.mouse.move(2, 2);
   await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'hidden');
-  await interactionTile.focus();
+  await interactionTile.evaluate((element) => element.focus({ preventScroll: true }));
   await expect(interactionTile).toBeFocused();
   await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
-  const rulesButton = page.getByRole('button', { name: '規則' });
-  await rulesButton.focus();
-  await expect(rulesButton).toBeFocused();
+  await interactionTile.evaluate((element) => element.blur());
+  await expect(interactionTile).not.toBeFocused();
   await expect(page.locator('.play-layout[data-layout="production"]')).toBeVisible();
   await expect(page.getByTestId('players-hud')).toBeVisible();
   await expect(page.getByTestId('market-hud')).toBeVisible();
