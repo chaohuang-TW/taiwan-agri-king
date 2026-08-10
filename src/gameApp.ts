@@ -96,7 +96,7 @@ function cleanupUiLifecycle(): void {
 }
 
 function getScenarioRandom(): RandomSource {
-  if (scenario === 'movement') return () => 0.5;
+  if (scenario === 'movement' || scenario === 'cpu-camera') return () => 0.5;
   return () => 0;
 }
 
@@ -167,11 +167,14 @@ function createScenarioGame(names: string[]): GameState {
             position,
             productIds: inventoryByScenario[scenario] ?? player.productIds,
           }
-        : scenario === 'cpu-sale' && index === 1
-          ? { ...player, position, funds: 3, productIds: ['taoyuan-rice'] }
-          : scenario === 'cpu-skip' && index === 1
-            ? { ...player, position, funds: 0 }
-            : player,
+        : cpuScenario && index === 1
+          ? {
+              ...player,
+              position,
+              ...(scenario === 'cpu-sale' ? { funds: 3, productIds: ['taoyuan-rice'] } : {}),
+              ...(scenario === 'cpu-skip' ? { funds: 0 } : {}),
+            }
+          : player,
     ),
     marketDeck:
       scenario === 'farmers'
@@ -209,7 +212,7 @@ function renderPlayers(game: GameState): string {
       ).length;
       const tile = BOARD_TILES.find(({ position }) => position === player.position)!;
       const controllerLabel = isCpuPlayer(player) ? '電腦' : '真人';
-      return `<article class="player-status player-${index + 1} ${index === game.currentPlayerIndex ? 'is-current' : ''}" data-testid="player-card-${player.id}">
+      return `<article class="player-status player-${index + 1} ${index === game.currentPlayerIndex ? 'is-current' : ''}" data-testid="player-card-${player.id}" data-controller="${player.controller ?? 'human'}" data-position="${player.position}" data-product-ids="${escapeHtml(player.productIds.join(','))}">
         <div class="player-status-title"><span class="player-piece">P${index + 1}</span><h3>${escapeHtml(player.name)}</h3><span class="controller-label">${controllerLabel}</span>${index === game.currentPlayerIndex ? '<em>目前回合</em>' : ''}</div>
         <dl><div><dt>採購金</dt><dd data-testid="funds-${player.id}">${player.funds}</dd></div><div><dt>位置</dt><dd>${tile.shortName}</dd></div><div><dt>產品</dt><dd data-testid="product-count-${player.id}">${player.productIds.length}</dd></div><div><dt>收藏</dt><dd>${completed}</dd></div></dl>
         <p>目前估值 <strong data-testid="score-${player.id}">${score.total}</strong></p>
@@ -340,6 +343,17 @@ function renderDynamic(): void {
   if (marketPanel) marketPanel.innerHTML = renderMarket(game);
   if (collectionPanel) collectionPanel.innerHTML = renderCollections(game);
   if (actionPanel) actionPanel.innerHTML = renderActionPanel(game);
+  if (actionPanel) {
+    actionPanel.dataset.phase = game.phase;
+    actionPanel.dataset.currentPlayerId = getCurrentPlayer(game).id;
+    actionPanel.dataset.temporaryDestinationId = game.temporaryDestinationId ?? '';
+    if (testMode && scenario === 'cpu-restart') {
+      actionPanel.insertAdjacentHTML(
+        'beforeend',
+        '<button type="button" class="test-restart" data-action="restart">測試重新開始</button>',
+      );
+    }
+  }
   const round = document.querySelector<HTMLElement>('[data-testid="round"]');
   const season = document.querySelector<HTMLElement>('[data-testid="season"]');
   const current = document.querySelector<HTMLElement>('[data-testid="current-player"]');

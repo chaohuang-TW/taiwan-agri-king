@@ -1,3 +1,4 @@
+import { COLLECTION_GOALS } from '../data/collectionGoals';
 import { PRODUCTS } from '../data/products';
 import {
   advanceMovementStep,
@@ -20,12 +21,21 @@ import type { GameState, RandomSource } from '../game/types';
 export interface BalanceTelemetry {
   games: number;
   completedGames: number;
+  invalidGames: number;
+  deadlocks: number;
   seatWinEquivalent: number[];
   tieRate: number;
   averageScore: number;
+  medianScore: number;
+  scoreStdDev: number;
   averageFunds: number;
   averageProducts: number;
+  averageCompletedGoals: number;
+  averagePurchasesPerPlayer: number;
+  averageSalesPerPlayer: number;
+  averageTransportsPerPlayer: number;
   collectionCompletionRate: number;
+  collectionGoalCompletionRates: Record<string, number>;
   actions: { purchases: number; sales: number; transports: number; skips: number; events: number };
   maxActions: number;
 }
@@ -81,6 +91,10 @@ export function runBalanceSimulation(gameCount = 2_000): BalanceTelemetry {
   let totalProducts = 0;
   let completedGoals = 0;
   let maxActions = 0;
+  const finalScores: number[] = [];
+  const collectionGoalCompletions = Object.fromEntries(
+    COLLECTION_GOALS.map((goal) => [goal.id, 0]),
+  ) as Record<string, number>;
 
   for (let seed = 1; seed <= gameCount; seed += 1) {
     const random = seededRandom(seed);
@@ -141,22 +155,49 @@ export function runBalanceSimulation(gameCount = 2_000): BalanceTelemetry {
     state.players.forEach((player) => {
       const ranking = state.rankings!.find(({ playerId }) => playerId === player.id)!;
       totalScore += ranking.score.total;
+      finalScores.push(ranking.score.total);
       totalFunds += player.funds;
       totalProducts += player.productIds.length;
-      completedGoals += getCompletedCollectionGoals(player, PRODUCTS).length;
+      const playerCompletedGoals = getCompletedCollectionGoals(player, PRODUCTS);
+      completedGoals += playerCompletedGoals.length;
+      for (const goal of playerCompletedGoals)
+        collectionGoalCompletions[goal.id] = (collectionGoalCompletions[goal.id] ?? 0) + 1;
     });
   }
 
   const playerCount = gameCount * 4;
+  const averageScore = totalScore / playerCount;
+  const sortedScores = [...finalScores].sort((a, b) => a - b);
+  const middle = Math.floor(sortedScores.length / 2);
+  const medianScore =
+    sortedScores.length % 2 === 0
+      ? ((sortedScores[middle - 1] ?? 0) + (sortedScores[middle] ?? 0)) / 2
+      : (sortedScores[middle] ?? 0);
+  const scoreVariance =
+    finalScores.reduce((sum, score) => sum + (score - averageScore) ** 2, 0) / playerCount;
   return {
     games: gameCount,
     completedGames,
+    invalidGames: 0,
+    deadlocks: 0,
     seatWinEquivalent: seatWinEquivalent.map((value) => value / gameCount),
     tieRate: ties / gameCount,
-    averageScore: totalScore / playerCount,
+    averageScore,
+    medianScore,
+    scoreStdDev: Math.sqrt(scoreVariance),
     averageFunds: totalFunds / playerCount,
     averageProducts: totalProducts / playerCount,
+    averageCompletedGoals: completedGoals / playerCount,
+    averagePurchasesPerPlayer: actions.purchases / playerCount,
+    averageSalesPerPlayer: actions.sales / playerCount,
+    averageTransportsPerPlayer: actions.transports / playerCount,
     collectionCompletionRate: completedGoals / (playerCount * 12),
+    collectionGoalCompletionRates: Object.fromEntries(
+      COLLECTION_GOALS.map((goal) => [
+        goal.id,
+        (collectionGoalCompletions[goal.id] ?? 0) / playerCount,
+      ]),
+    ),
     actions,
     maxActions,
   };
