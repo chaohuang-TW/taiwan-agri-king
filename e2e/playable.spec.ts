@@ -53,7 +53,6 @@ async function waitForCameraSamples(
   page: Page,
   property: 'cameraSamples' | 'cpuCameraSamples',
 ): Promise<CameraSample[]> {
-  const expected = ['24:1', '25:2', '26:3', '0:4'];
   await expect
     .poll(
       () =>
