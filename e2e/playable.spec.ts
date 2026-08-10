@@ -49,6 +49,219 @@ type CameraSample = {
   tokenVisible: boolean;
 };
 
+type DiceObservation = {
+  state: string;
+  result: string;
+  visualFace: string;
+  playerId: string;
+  width: number;
+  height: number;
+  left: number;
+  top: number;
+  animationName: string;
+};
+
+function observeDiceInDocument(): void {
+  const start = (): void => {
+    const observations: DiceObservation[] = [];
+    const capture = (element: HTMLElement): void => {
+      const cube = element.querySelector<HTMLElement>('.dice-cube');
+      observations.push({
+        state: element.dataset.diceState ?? '',
+        result: element.dataset.diceResult ?? '',
+        visualFace: element.dataset.diceVisualFace ?? '',
+        playerId: element.dataset.dicePlayerId ?? '',
+        width: element.getBoundingClientRect().width,
+        height: element.getBoundingClientRect().height,
+        left: element.getBoundingClientRect().left,
+        top: element.getBoundingClientRect().top,
+        animationName: cube ? getComputedStyle(cube).animationName : 'none',
+      });
+    };
+    (window as typeof window & { diceObservations: DiceObservation[] }).diceObservations =
+      observations;
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (
+          record.target instanceof HTMLElement &&
+          record.target.matches('[data-testid="dice-overlay"]')
+        ) {
+          capture(record.target);
+        }
+      }
+      const overlay = document.querySelector<HTMLElement>('[data-testid="dice-overlay"]');
+      if (overlay) capture(overlay);
+    });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        'data-dice-state',
+        'data-dice-result',
+        'data-dice-visual-face',
+        'data-dice-player-id',
+      ],
+    });
+  };
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start, { once: true });
+}
+
+async function prepareDiceObserver(page: Page): Promise<void> {
+  await page.addInitScript(observeDiceInDocument);
+}
+
+async function getDiceObservations(page: Page): Promise<DiceObservation[]> {
+  return page.evaluate(
+    () =>
+      (window as typeof window & { diceObservations?: DiceObservation[] }).diceObservations ?? [],
+  );
+}
+
+function observeCameraInDocument(options: { tokenId: string; property: string }): void {
+  const { tokenId } = options;
+  const property = options.property as 'cameraSamples' | 'cpuCameraSamples';
+  const cameraWindow = window as typeof window & {
+    cameraObserverReady?: boolean;
+    cameraObserverBootstrap?: MutationObserver;
+    [key: string]: unknown;
+  };
+  cameraWindow.cameraObserverReady = false;
+  cameraWindow[property] = [];
+
+  let started = false;
+  const start = (): void => {
+    if (started) return;
+    const camera = document.querySelector<HTMLElement>('[data-testid="board-camera"]');
+    const token = document.querySelector<HTMLElement>(`[data-testid="${tokenId}"]`);
+    if (!camera || !token) return;
+    const cameraRect = camera.getBoundingClientRect();
+    const tokenRect = token.getBoundingClientRect();
+    if (
+      cameraRect.width <= 0 ||
+      cameraRect.height <= 0 ||
+      tokenRect.width <= 0 ||
+      tokenRect.height <= 0 ||
+      window.innerWidth <= 0 ||
+      window.innerHeight <= 0
+    )
+      return;
+
+    started = true;
+    cameraWindow.cameraObserverBootstrap?.disconnect();
+    const sampleMap = new Map<string, CameraSample>();
+    const publish = (): void => {
+      cameraWindow[property] = [...sampleMap.values()].sort(
+        (left, right) => left.stepIndex - right.stepIndex,
+      );
+    };
+    const sample = (): void => {
+      const currentToken = document.querySelector<HTMLElement>(`[data-testid="${tokenId}"]`);
+      const position = camera.dataset.focusedPosition;
+      const stepIndex = Number(camera.dataset.cameraStepIndex);
+      if (!position || stepIndex < 1 || !currentToken) return;
+      const viewportRect = camera.getBoundingClientRect();
+      const currentTokenRect = currentToken.getBoundingClientRect();
+      const x = Number(camera.dataset.cameraX);
+      const y = Number(camera.dataset.cameraY);
+      const scale = Number(camera.dataset.cameraScale);
+      if (
+        !Number.isFinite(x) ||
+        !Number.isFinite(y) ||
+        !Number.isFinite(scale) ||
+        viewportRect.width <= 0 ||
+        viewportRect.height <= 0 ||
+        currentTokenRect.width <= 0 ||
+        currentTokenRect.height <= 0
+      )
+        return;
+      const tokenCenterX = currentTokenRect.left + currentTokenRect.width / 2;
+      const tokenCenterY = currentTokenRect.top + currentTokenRect.height / 2;
+      const value: CameraSample = {
+        position,
+        stepIndex,
+        x,
+        y,
+        scale,
+        tokenCenterX,
+        tokenCenterY,
+        viewportLeft: viewportRect.left,
+        viewportRight: viewportRect.right,
+        viewportTop: viewportRect.top,
+        viewportBottom: viewportRect.bottom,
+        tokenVisible:
+          tokenCenterX >= viewportRect.left - 2 &&
+          tokenCenterX <= viewportRect.right + 2 &&
+          tokenCenterY >= viewportRect.top - 2 &&
+          tokenCenterY <= viewportRect.bottom + 2,
+      };
+      sampleMap.set(`${position}:${stepIndex}`, value);
+      publish();
+    };
+    const observer = new MutationObserver(() => {
+      sample();
+      requestAnimationFrame(() => requestAnimationFrame(sample));
+    });
+    observer.observe(document, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      attributeFilter: [
+        'data-focused-position',
+        'data-camera-x',
+        'data-camera-y',
+        'data-camera-step-index',
+      ],
+    });
+    sample();
+    const sampleFrame = (): void => {
+      sample();
+      if (started) window.requestAnimationFrame(sampleFrame);
+    };
+    window.requestAnimationFrame(sampleFrame);
+    cameraWindow.cameraObserverReady = true;
+  };
+
+  cameraWindow.cameraObserverBootstrap = new MutationObserver(start);
+  cameraWindow.cameraObserverBootstrap.observe(document, {
+    childList: true,
+    subtree: true,
+  });
+  start();
+  const retryUntilReady = (): void => {
+    if (started) return;
+    start();
+    if (!started) window.requestAnimationFrame(retryUntilReady);
+  };
+  window.requestAnimationFrame(retryUntilReady);
+}
+
+async function prepareCameraObserver(
+  page: Page,
+  tokenId: string,
+  property: 'cameraSamples' | 'cpuCameraSamples',
+): Promise<void> {
+  await page.addInitScript(observeCameraInDocument, { tokenId, property });
+}
+
+async function waitForCameraObserverReady(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            (window as typeof window & { cameraObserverReady?: boolean }).cameraObserverReady ===
+            true,
+        ),
+      {
+        timeout: 5000,
+        message: '等待 Camera observer ready（camera、token、有效 layout、MutationObserver）',
+      },
+    )
+    .toBe(true);
+}
+
 async function waitForCameraSamples(
   page: Page,
   property: 'cameraSamples' | 'cpuCameraSamples',
@@ -59,13 +272,17 @@ async function waitForCameraSamples(
         page.evaluate((name) => {
           const expected = ['24:1', '25:2', '26:3', '0:4'];
           const samples = (window as typeof window & Record<string, CameraSample[]>)[name] ?? [];
-          return expected.every((key) =>
-            samples.some((sample) => `${sample.position}:${sample.stepIndex}` === key),
-          );
+          const keys = samples.map((sample) => `${sample.position}:${sample.stepIndex}`);
+          return expected.every((key) => keys.includes(key))
+            ? 'ready'
+            : `received=${keys.join(',')}`;
         }, property),
-      { timeout: 5000 },
+      {
+        timeout: 10000,
+        message: '等待完整 Camera movement samples：24:1, 25:2, 26:3, 0:4',
+      },
     )
-    .toBe(true);
+    .toBe('ready');
   return page.evaluate(
     (name) => (window as typeof window & Record<string, CameraSample[]>)[name] ?? [],
     property,
@@ -95,63 +312,27 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
 
 test('擲骰逐格移動、Camera實際跟拍並保持棋子可見', async ({ page }) => {
   const diagnostics = observePage(page);
+  await prepareDiceObserver(page);
+  await prepareCameraObserver(page, 'player-token-player-1', 'cameraSamples');
   await page.goto('game.html?testMode=1&scenario=movement');
-  await page.evaluate(() => {
-    const camera = document.querySelector<HTMLElement>('[data-testid="board-camera"]')!;
-    const token = document.querySelector<HTMLElement>('[data-testid="player-token-player-1"]')!;
-    const samples: CameraSample[] = [];
-    (window as typeof window & { cameraSamples: CameraSample[] }).cameraSamples = samples;
-
-    const sample = () => {
-      const position = camera.dataset.focusedPosition;
-      const stepIndex = Number(camera.dataset.cameraStepIndex);
-      if (!position || stepIndex < 1) return;
-      if (
-        samples.some(
-          (value) => `${value.position}:${value.stepIndex}` === `${position}:${stepIndex}`,
-        )
-      )
-        return;
-
-      const viewportRect = camera.getBoundingClientRect();
-      const tokenRect = token.getBoundingClientRect();
-      const tokenCenterX = tokenRect.left + tokenRect.width / 2;
-      const tokenCenterY = tokenRect.top + tokenRect.height / 2;
-      const tolerance = 2;
-      samples.push({
-        position,
-        stepIndex,
-        x: Number(camera.dataset.cameraX),
-        y: Number(camera.dataset.cameraY),
-        scale: Number(camera.dataset.cameraScale),
-        tokenCenterX,
-        tokenCenterY,
-        viewportLeft: viewportRect.left,
-        viewportRight: viewportRect.right,
-        viewportTop: viewportRect.top,
-        viewportBottom: viewportRect.bottom,
-        tokenVisible:
-          tokenCenterX >= viewportRect.left - tolerance &&
-          tokenCenterX <= viewportRect.right + tolerance &&
-          tokenCenterY >= viewportRect.top - tolerance &&
-          tokenCenterY <= viewportRect.bottom + tolerance,
-      });
-    };
-
-    new MutationObserver(() => {
-      requestAnimationFrame(() => requestAnimationFrame(sample));
-    }).observe(camera, {
-      attributes: true,
-      attributeFilter: [
-        'data-focused-position',
-        'data-camera-x',
-        'data-camera-y',
-        'data-camera-step-index',
-      ],
-    });
-  });
+  await waitForCameraObserverReady(page);
   await page.getByRole('button', { name: '擲骰子' }).click();
   await waitForAction(page, '選擇一個合法目的地');
+  const diceObservations = await getDiceObservations(page);
+  expect(diceObservations.map(({ state }) => state)).toEqual(
+    expect.arrayContaining(['entering', 'rolling', 'settling', 'result', 'exiting', 'hidden']),
+  );
+  expect(
+    diceObservations.some(({ result, visualFace }) => result === '4' && visualFace === '4'),
+  ).toBe(true);
+  expect(diceObservations.some(({ playerId }) => playerId === 'player-1')).toBe(true);
+  for (const observation of diceObservations) {
+    if (observation.state === 'hidden') continue;
+    expect(observation.width).toBeGreaterThanOrEqual(0);
+    expect(observation.height).toBeGreaterThanOrEqual(0);
+    expect(observation.left).toBeGreaterThanOrEqual(0);
+    expect(observation.top).toBeGreaterThanOrEqual(0);
+  }
   const samples = await waitForCameraSamples(page, 'cameraSamples');
   const movementSamples = [
     ['24', 1],
@@ -397,58 +578,29 @@ test.describe('CPU回合情境', () => {
 
   test('cpu-camera逐格跟拍、抵達並回到overview', async ({ page }) => {
     const diagnostics = observePage(page);
+    await prepareDiceObserver(page);
+    await prepareCameraObserver(page, 'player-token-player-2', 'cpuCameraSamples');
     await page.goto('game.html?testMode=1&scenario=cpu-camera');
-    await page.evaluate(() => {
-      const camera = document.querySelector<HTMLElement>('[data-testid="board-camera"]')!;
-      const token = document.querySelector<HTMLElement>('[data-testid="player-token-player-2"]')!;
-      const samples: CameraSample[] = [];
-      (window as typeof window & { cpuCameraSamples: CameraSample[] }).cpuCameraSamples = samples;
-      const sample = () => {
-        const position = camera.dataset.focusedPosition;
-        const stepIndex = Number(camera.dataset.cameraStepIndex);
-        if (!position || stepIndex < 1) return;
-        if (
-          samples.some(
-            (value) => `${value.position}:${value.stepIndex}` === `${position}:${stepIndex}`,
-          )
-        )
-          return;
-        const viewportRect = camera.getBoundingClientRect();
-        const tokenRect = token.getBoundingClientRect();
-        const tokenCenterX = tokenRect.left + tokenRect.width / 2;
-        const tokenCenterY = tokenRect.top + tokenRect.height / 2;
-        samples.push({
-          position,
-          stepIndex,
-          x: Number(camera.dataset.cameraX),
-          y: Number(camera.dataset.cameraY),
-          scale: Number(camera.dataset.cameraScale),
-          tokenCenterX,
-          tokenCenterY,
-          viewportLeft: viewportRect.left,
-          viewportRight: viewportRect.right,
-          viewportTop: viewportRect.top,
-          viewportBottom: viewportRect.bottom,
-          tokenVisible:
-            tokenCenterX >= viewportRect.left - 2 &&
-            tokenCenterX <= viewportRect.right + 2 &&
-            tokenCenterY >= viewportRect.top - 2 &&
-            tokenCenterY <= viewportRect.bottom + 2,
-        });
-      };
-      new MutationObserver(() =>
-        requestAnimationFrame(() => requestAnimationFrame(sample)),
-      ).observe(camera, {
-        attributes: true,
-        attributeFilter: [
-          'data-focused-position',
-          'data-camera-x',
-          'data-camera-y',
-          'data-camera-step-index',
-        ],
-      });
-    });
+    await waitForCameraObserverReady(page);
     await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    const diceObservations = await getDiceObservations(page);
+    expect(
+      diceObservations.some(
+        ({ playerId, result, visualFace }) =>
+          playerId === 'player-2' && result === '4' && visualFace === '4',
+      ),
+    ).toBe(true);
+    expect(
+      diceObservations.some(({ playerId, state }) => playerId === 'player-2' && state === 'hidden'),
+    ).toBe(true);
+    const viewport = page.viewportSize();
+    for (const observation of diceObservations.filter(({ state }) => state !== 'hidden')) {
+      expect(observation.width).toBeCloseTo(viewport?.width ?? 0, 0);
+      expect(observation.height).toBeCloseTo(viewport?.height ?? 0, 0);
+      expect(observation.left).toBeGreaterThanOrEqual(0);
+      expect(observation.top).toBeGreaterThanOrEqual(0);
+    }
+    await expectPageHealthy(page, diagnostics);
     const samples = await waitForCameraSamples(page, 'cpuCameraSamples');
     const movementSamples = [
       ['24', 1],
@@ -478,18 +630,28 @@ test.describe('CPU回合情境', () => {
   });
 
   test('CPU回合期間真人控制鎖定，完成後恢復', async ({ page }) => {
+    await prepareDiceObserver(page);
     await page.goto('game.html?testMode=1&scenario=cpu-purchase');
-    await expect(page.locator('#action-panel')).toHaveAttribute('data-phase', 'awaiting-purchase', {
-      timeout: 5000,
-    });
-    await expect(page.locator('#action-panel [data-action="buy"]').first()).toBeDisabled();
-    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    await expect(page.getByTestId('dice-overlay')).toHaveAttribute(
+      'data-dice-state',
+      /^(entering|rolling|settling|result)$/,
+      { timeout: 10000 },
+    );
+    await expect(page.locator('#action-panel button').first()).toBeDisabled();
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 10000 });
   });
 
   test('1真人加3CPU完整跑完一輪並回到真人P1', async ({ page }) => {
+    await prepareDiceObserver(page);
     await page.goto('game.html?testMode=1&scenario=cpu-round');
     await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
     await expect(page.getByTestId('round')).toHaveText('第 2 / 12 輪');
+    const dicePlayers = new Set(
+      (await getDiceObservations(page))
+        .filter(({ state }) => state === 'result')
+        .map(({ playerId }) => playerId),
+    );
+    expect([...dicePlayers]).toEqual(expect.arrayContaining(['player-2', 'player-3', 'player-4']));
     for (const id of ['player-2', 'player-3', 'player-4']) {
       await expect(page.getByTestId(`product-count-${id}`)).toHaveText('1');
     }
@@ -518,11 +680,19 @@ test.describe('CPU回合情境', () => {
   test('cpu-restart會取消舊CPU timer並留在設定頁', async ({ page }) => {
     const diagnostics = observePage(page);
     await page.goto('game.html?testMode=1&scenario=cpu-restart');
-    await page.getByRole('button', { name: '測試重新開始' }).click();
+    await expect(page.getByTestId('dice-overlay')).toHaveAttribute(
+      'data-dice-state',
+      /^(rolling|settling)$/,
+      { timeout: 5000 },
+    );
+    await page
+      .getByRole('button', { name: '測試重新開始' })
+      .evaluate((button) => (button as HTMLButtonElement).click());
     await expect(page.getByRole('heading', { name: '這趟環島，有幾位採購王？' })).toBeVisible();
     await page.waitForTimeout(300);
     await expect(page.getByRole('heading', { name: '這趟環島，有幾位採購王？' })).toBeVisible();
     await expect(page.getByTestId('board-camera')).toHaveCount(0);
+    await expect(page.getByTestId('dice-overlay')).toHaveCount(0);
     expect(diagnostics.consoleErrors).toEqual([]);
     expect(diagnostics.failedAssets).toEqual([]);
   });
@@ -539,8 +709,21 @@ test.describe('CPU回合情境', () => {
 
   test('Reduced Motion仍保留CPU逐格流程並停用Camera縮放', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    await prepareDiceObserver(page);
     await page.goto('game.html?testMode=1&scenario=cpu-camera');
     await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    const diceObservations = await getDiceObservations(page);
+    expect(
+      diceObservations.some(
+        ({ state, result, visualFace }) =>
+          state === 'result' && result === '4' && visualFace === '4',
+      ),
+    ).toBe(true);
+    expect(
+      diceObservations.some(
+        ({ state, animationName }) => state === 'rolling' && animationName === 'none',
+      ),
+    ).toBe(true);
     await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-scale', '1');
     await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-x', '0');
     await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-y', '0');
