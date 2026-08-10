@@ -49,6 +49,30 @@ type CameraSample = {
   tokenVisible: boolean;
 };
 
+async function waitForCameraSamples(
+  page: Page,
+  property: 'cameraSamples' | 'cpuCameraSamples',
+): Promise<CameraSample[]> {
+  const expected = ['24:1', '25:2', '26:3', '0:4'];
+  await expect
+    .poll(
+      () =>
+        page.evaluate((name) => {
+          const expected = ['24:1', '25:2', '26:3', '0:4'];
+          const samples = (window as typeof window & Record<string, CameraSample[]>)[name] ?? [];
+          return expected.every((key) =>
+            samples.some((sample) => `${sample.position}:${sample.stepIndex}` === key),
+          );
+        }, property),
+      { timeout: 5000 },
+    )
+    .toBe(true);
+  return page.evaluate(
+    (name) => (window as typeof window & Record<string, CameraSample[]>)[name] ?? [],
+    property,
+  );
+}
+
 test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ page }) => {
   const diagnostics = observePage(page);
   await page.goto('');
@@ -129,9 +153,7 @@ test('擲骰逐格移動、Camera實際跟拍並保持棋子可見', async ({ pa
   });
   await page.getByRole('button', { name: '擲骰子' }).click();
   await waitForAction(page, '選擇一個合法目的地');
-  const samples = await page.evaluate(
-    () => (window as typeof window & { cameraSamples: CameraSample[] }).cameraSamples,
-  );
+  const samples = await waitForCameraSamples(page, 'cameraSamples');
   const movementSamples = [
     ['24', 1],
     ['25', 2],
@@ -428,9 +450,7 @@ test.describe('CPU回合情境', () => {
       });
     });
     await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
-    const samples = await page.evaluate(
-      () => (window as typeof window & { cpuCameraSamples: CameraSample[] }).cpuCameraSamples,
-    );
+    const samples = await waitForCameraSamples(page, 'cpuCameraSamples');
     const movementSamples = [
       ['24', 1],
       ['25', 2],
