@@ -203,8 +203,10 @@ function observeCameraInDocument(options: { tokenId: string; property: string })
       sample();
       requestAnimationFrame(() => requestAnimationFrame(sample));
     });
-    observer.observe(camera, {
+    observer.observe(document, {
       attributes: true,
+      childList: true,
+      subtree: true,
       attributeFilter: [
         'data-focused-position',
         'data-camera-x',
@@ -213,6 +215,11 @@ function observeCameraInDocument(options: { tokenId: string; property: string })
       ],
     });
     sample();
+    const sampleFrame = (): void => {
+      sample();
+      if (started) window.requestAnimationFrame(sampleFrame);
+    };
+    window.requestAnimationFrame(sampleFrame);
     cameraWindow.cameraObserverReady = true;
   };
 
@@ -266,17 +273,16 @@ async function waitForCameraSamples(
           const expected = ['24:1', '25:2', '26:3', '0:4'];
           const samples = (window as typeof window & Record<string, CameraSample[]>)[name] ?? [];
           const keys = samples.map((sample) => `${sample.position}:${sample.stepIndex}`);
-          return {
-            ready: expected.every((key) => keys.includes(key)),
-            keys,
-          };
+          return expected.every((key) => keys.includes(key))
+            ? 'ready'
+            : `received=${keys.join(',')}`;
         }, property),
       {
         timeout: 10000,
         message: '等待完整 Camera movement samples：24:1, 25:2, 26:3, 0:4',
       },
     )
-    .toMatchObject({ ready: true });
+    .toBe('ready');
   return page.evaluate(
     (name) => (window as typeof window & Record<string, CameraSample[]>)[name] ?? [],
     property,
