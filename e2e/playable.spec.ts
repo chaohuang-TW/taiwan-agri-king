@@ -61,6 +61,22 @@ type DiceObservation = {
   animationName: string;
 };
 
+type GeometryRect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+};
+
+type BoardArtworkGeometry = {
+  viewport: GeometryRect;
+  artwork: GeometryRect;
+  cameraState: string | null;
+  cameraSettled: boolean;
+};
+
 function observeDiceInDocument(): void {
   const start = (): void => {
     const observations: DiceObservation[] = [];
@@ -289,6 +305,121 @@ async function waitForCameraSamples(
   );
 }
 
+async function waitForStableBoardArtworkGeometry(page: Page): Promise<BoardArtworkGeometry> {
+  return page.evaluate(
+    ({ consecutiveSamples, epsilon, timeout, tolerance }) =>
+      new Promise<BoardArtworkGeometry>((resolve, reject) => {
+        type GeometrySample = BoardArtworkGeometry & {
+          valid: boolean;
+          contained: boolean;
+          containment: {
+            left: boolean;
+            right: boolean;
+            top: boolean;
+            bottom: boolean;
+          };
+        };
+
+        const startedAt = performance.now();
+        let stableSamples = 0;
+        let previous: GeometrySample | null = null;
+        let latest: GeometrySample | null = null;
+
+        const toRect = (rect: DOMRect): GeometryRect => ({
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        });
+        const finiteRect = (rect: GeometryRect): boolean =>
+          Object.values(rect).every(Number.isFinite) && rect.width > 0 && rect.height > 0;
+        const geometryStable = (left: GeometrySample, right: GeometrySample): boolean => {
+          const values = (sample: GeometrySample): number[] => [
+            sample.viewport.left,
+            sample.viewport.top,
+            sample.viewport.width,
+            sample.viewport.height,
+            sample.artwork.left,
+            sample.artwork.top,
+            sample.artwork.width,
+            sample.artwork.height,
+          ];
+          return values(left).every(
+            (value, index) => Math.abs(value - values(right)[index]!) <= epsilon,
+          );
+        };
+        const sampleGeometry = (): GeometrySample | null => {
+          const camera = document.querySelector<HTMLElement>('[data-testid="board-camera"]');
+          const viewportElement = document.querySelector<HTMLElement>('.map-camera-viewport');
+          const artworkElement = document.querySelector<HTMLImageElement>(
+            '[data-testid="board-artwork-image"]',
+          );
+          if (!camera || !viewportElement || !artworkElement) return null;
+          const viewport = toRect(viewportElement.getBoundingClientRect());
+          const artwork = toRect(artworkElement.getBoundingClientRect());
+          const containment = {
+            left: artwork.left >= viewport.left - tolerance,
+            right: artwork.right <= viewport.right + tolerance,
+            top: artwork.top >= viewport.top - tolerance,
+            bottom: artwork.bottom <= viewport.bottom + tolerance,
+          };
+          const cameraSettled = camera.dataset.cameraSettled === 'true';
+          return {
+            viewport,
+            artwork,
+            cameraState: camera.dataset.cameraState ?? null,
+            cameraSettled,
+            valid: finiteRect(viewport) && finiteRect(artwork) && cameraSettled,
+            contained: Object.values(containment).every(Boolean),
+            containment,
+          };
+        };
+        const diagnostic = (): string => {
+          if (!latest) return '最後 sample：camera、viewport 或 artwork 尚未同時存在。';
+          return [
+            'Board artwork geometry did not stabilize.',
+            `viewport=${JSON.stringify(latest.viewport)}`,
+            `artwork=${JSON.stringify(latest.artwork)}`,
+            `cameraState=${latest.cameraState}`,
+            `cameraSettled=${latest.cameraSettled}`,
+            `valid=${latest.valid}`,
+            `contained=${latest.contained}`,
+            `containment=${JSON.stringify(latest.containment)}`,
+            `consecutiveStableSamples=${stableSamples}/${consecutiveSamples}`,
+          ].join('\n');
+        };
+        const nextFrame = (): void => {
+          latest = sampleGeometry();
+          if (latest?.valid && latest.contained) {
+            stableSamples = previous && geometryStable(previous, latest) ? stableSamples + 1 : 1;
+          } else {
+            stableSamples = 0;
+          }
+          if (latest && stableSamples >= consecutiveSamples) {
+            resolve({
+              viewport: latest.viewport,
+              artwork: latest.artwork,
+              cameraState: latest.cameraState,
+              cameraSettled: latest.cameraSettled,
+            });
+            return;
+          }
+          if (performance.now() - startedAt >= timeout) {
+            reject(new Error(diagnostic()));
+            return;
+          }
+          previous = latest;
+          requestAnimationFrame(nextFrame);
+        };
+
+        requestAnimationFrame(nextFrame);
+      }),
+    { consecutiveSamples: 3, epsilon: 0.5, timeout: 3000, tolerance: 5 },
+  );
+}
+
 test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ page }) => {
   const diagnostics = observePage(page);
   await page.goto('');
@@ -302,11 +433,186 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(page.getByTestId('current-player')).toHaveText('阿禾');
   await expect(page.locator('.board-tile')).toHaveCount(30);
   await expect(page.locator('.board-tile[data-position="27"]')).toBeVisible();
-  await expect(page.getByTestId('market-card')).toBeVisible();
+  await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-settled', 'true');
+  await expect(page.locator('.taiwan-board-art')).toHaveCount(0);
+  await expect(page.locator('.offshore-panel')).toHaveCount(0);
+  const boardArtworkImage = page.getByTestId('board-artwork-image');
+  await expect(boardArtworkImage).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        boardArtworkImage.evaluate((element) => {
+          const image = element as HTMLImageElement;
+          return image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+        }),
+      { timeout: 3000 },
+    )
+    .toBe(true);
+  await waitForStableBoardArtworkGeometry(page);
+  await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
+  const defaultTileAppearance = await page
+    .locator('.board-tile[data-position="10"]')
+    .evaluate((tile) => {
+      const element = tile as HTMLElement;
+      const icon = element.querySelector<HTMLElement>('.tile-icon-wrap');
+      const copy = element.querySelector<HTMLElement>('.tile-copy');
+      const style = getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        border: style.borderColor,
+        iconOpacity: icon ? getComputedStyle(icon).opacity : '',
+        iconVisibility: icon ? getComputedStyle(icon).visibility : '',
+        copyOpacity: copy ? getComputedStyle(copy).opacity : '',
+        copyVisibility: copy ? getComputedStyle(copy).visibility : '',
+      };
+    });
+  expect(defaultTileAppearance.background).toBe('rgba(0, 0, 0, 0)');
+  expect(defaultTileAppearance.border).toBe('rgba(0, 0, 0, 0)');
+  expect(defaultTileAppearance.iconOpacity).toBe('0');
+  expect(defaultTileAppearance.iconVisibility).toBe('hidden');
+  expect(defaultTileAppearance.copyOpacity).toBe('0');
+  expect(defaultTileAppearance.copyVisibility).toBe('hidden');
+  const interactionTile = page.locator('.board-tile[data-position="10"]');
+  const interactionTileBox = await interactionTile.boundingBox();
+  if (!interactionTileBox) throw new Error('Interaction tile has no rendered bounding box.');
+  await page.mouse.move(
+    interactionTileBox.x + interactionTileBox.width / 2,
+    interactionTileBox.y + interactionTileBox.height / 2,
+  );
+  await expect(interactionTile.locator('.tile-icon-wrap')).toHaveCSS('visibility', 'visible');
+  await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
+  await page.mouse.move(2, 2);
+  await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'hidden');
+  await interactionTile.evaluate((element) => element.focus({ preventScroll: true }));
+  await expect(interactionTile).toBeFocused();
+  await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
+  await interactionTile.evaluate((element) => element.blur());
+  await expect(interactionTile).not.toBeFocused();
+  await expect(page.locator('.play-layout[data-layout="production"]')).toBeVisible();
+  await expect(page.getByTestId('players-hud')).toBeVisible();
+  await expect(page.getByTestId('market-hud')).toBeVisible();
+  await expect(page.getByTestId('action-dock')).toBeVisible();
+  const stableBoardGeometry = await waitForStableBoardArtworkGeometry(page);
+  expect(stableBoardGeometry.cameraSettled).toBe(true);
+  const boardGeometry = await page.evaluate(() => {
+    const viewport = document.querySelector('.map-camera-viewport')?.getBoundingClientRect();
+    const artworkImage = document
+      .querySelector<HTMLImageElement>('[data-testid="board-artwork-image"]')
+      ?.getBoundingClientRect();
+    const positions = Array.from(document.querySelectorAll<HTMLElement>('.board-tile')).map(
+      (tile) => Number(tile.dataset.position),
+    );
+    const centers = Array.from(document.querySelectorAll<HTMLElement>('.board-tile')).map(
+      (tile) => {
+        const rect = tile.getBoundingClientRect();
+        return [rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
+      },
+    );
+    let minimumDistance = Number.POSITIVE_INFINITY;
+    for (let index = 0; index < centers.length; index += 1) {
+      for (let next = index + 1; next < centers.length; next += 1) {
+        minimumDistance = Math.min(
+          minimumDistance,
+          Math.hypot(
+            centers[index]![0] - centers[next]![0],
+            centers[index]![1] - centers[next]![1],
+          ),
+        );
+      }
+    }
+    const token = document.querySelector<HTMLElement>('[data-testid="player-token-player-1"]');
+    const tokenRect = token?.getBoundingClientRect();
+    const offshoreCenters = Array.from(
+      document.querySelectorAll<HTMLElement>('.board-tile.tile-offshore'),
+    ).map((tile) => {
+      const rect = tile.getBoundingClientRect();
+      return [rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
+    });
+    return {
+      positions,
+      minimumDistance,
+      tokenVisible: Boolean(tokenRect && tokenRect.width > 0 && tokenRect.height > 0),
+      artworkImageInsideViewport:
+        Boolean(viewport && artworkImage) &&
+        artworkImage!.left >= viewport!.left - 5 &&
+        artworkImage!.right <= viewport!.right + 5 &&
+        artworkImage!.top >= viewport!.top - 5 &&
+        artworkImage!.bottom <= viewport!.bottom + 5,
+      offshoreAligned:
+        Boolean(artworkImage) &&
+        offshoreCenters.length === 3 &&
+        offshoreCenters.every(
+          ([x, y]) =>
+            x >= artworkImage!.left &&
+            x <= artworkImage!.left + artworkImage!.width * 0.3 &&
+            y >= artworkImage!.top + artworkImage!.height * 0.35 &&
+            y <= artworkImage!.bottom,
+        ),
+    };
+  });
+  expect(boardGeometry.positions).toEqual(Array.from({ length: 30 }, (_, position) => position));
+  expect(boardGeometry.minimumDistance).toBeGreaterThan(14);
+  expect(boardGeometry.tokenVisible).toBe(true);
+  expect(boardGeometry.artworkImageInsideViewport).toBe(true);
+  expect(boardGeometry.offshoreAligned).toBe(true);
+  const viewportWidth = page.viewportSize()?.width ?? 0;
+  if (viewportWidth >= 900) {
+    const shellGeometry = await page.evaluate(() => {
+      const rect = (selector: string) =>
+        document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+      const stage = rect('.game-stage');
+      const players = rect('.players-rail');
+      const board = rect('.board-frame');
+      const insights = rect('.insight-rail');
+      const dock = rect('.action-panel');
+      return {
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        boardWidth: board?.width ?? 0,
+        boardRatio: stage && board ? board.width / stage.width : 0,
+        playersFloatOverBoard: Boolean(players && board && players.left >= board.left),
+        marketFloatsOverBoard: Boolean(insights && board && insights.right <= board.right),
+        playersHeightRatio: stage && players ? players.height / stage.height : 1,
+        marketHeightRatio: stage && insights ? insights.height / stage.height : 1,
+        dockHeight: dock?.height ?? 0,
+        dockCentered: Boolean(
+          stage &&
+          dock &&
+          Math.abs(dock.left + dock.width / 2 - (stage.left + stage.width / 2)) < 2,
+        ),
+      };
+    });
+    expect(shellGeometry.overflow).toBe(0);
+    expect(shellGeometry.boardWidth).toBeGreaterThan(650);
+    expect(shellGeometry.boardRatio).toBeGreaterThanOrEqual(0.65);
+    expect(shellGeometry.playersFloatOverBoard).toBe(true);
+    expect(shellGeometry.marketFloatsOverBoard).toBe(true);
+    expect(shellGeometry.playersHeightRatio).toBeLessThan(0.65);
+    expect(shellGeometry.marketHeightRatio).toBeLessThan(0.65);
+    expect(shellGeometry.dockHeight).toBeLessThanOrEqual(120);
+    expect(shellGeometry.dockCentered).toBe(true);
+  }
+  if (viewportWidth >= 900) {
+    await expect(page.getByTestId('market-card')).toBeVisible();
+  } else {
+    await expect(page.getByTestId('market-hud')).not.toHaveAttribute('open', '');
+    await expect(page.getByTestId('market-card')).not.toBeVisible();
+  }
   await expect(page.getByText('收藏任務', { exact: false })).toBeVisible();
   await expect(page.getByTestId('funds-player-1')).toHaveText('15');
   await expect(page.locator('[data-testid^="player-card-player-"]')).toHaveCount(4);
   await expect(page.getByTestId('player-card-player-3')).toContainText('電腦');
+  await expect(page.locator('.player-status.is-current')).toHaveCount(1);
+  await expect(page.getByTestId('player-card-player-1')).toHaveClass(/is-current/);
+  await expect(page.locator('.controller-label')).toHaveCount(4);
+  await expect(page.locator('.action-panel')).toBeVisible();
+  await expect(page.locator('.action-panel .primary-action')).toBeVisible();
+  await expect(page.getByTestId('collections-drawer')).not.toHaveAttribute('open', '');
+  await expect(page.locator('.collections-list')).not.toBeVisible();
+  const boardBeforeDrawer = await page.locator('.board-frame').boundingBox();
+  await page.getByText('收藏任務', { exact: false }).click();
+  await expect(page.locator('.collections-list')).toBeVisible();
+  const boardAfterDrawer = await page.locator('.board-frame').boundingBox();
+  expect(boardAfterDrawer).toEqual(boardBeforeDrawer);
   await expectPageHealthy(page, diagnostics);
 });
 
@@ -481,11 +787,40 @@ test('手機390×844可完成一回合並操作規則與收藏', async ({ page }
   await page.goto('game.html?testMode=1&scenario=purchase');
   expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
   await expect(page.locator('.board-frame')).toBeVisible();
+  await expect(page.locator('.taiwan-board-art')).toHaveCount(0);
+  await expect(page.locator('.offshore-panel')).toHaveCount(0);
+  const mobileArtworkImage = page.getByTestId('board-artwork-image');
+  await expect(mobileArtworkImage).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        mobileArtworkImage.evaluate((element) => {
+          const image = element as HTMLImageElement;
+          return image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+        }),
+      { timeout: 3000 },
+    )
+    .toBe(true);
+  await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
+  await expect(page.locator('.board-tile[data-position="27"]')).toBeVisible();
+  await expect(page.locator('.board-tile[data-position="28"]')).toBeVisible();
+  await expect(page.locator('.board-tile[data-position="29"]')).toBeVisible();
+  await expect(page.locator('.play-layout[data-layout="production"]')).toBeVisible();
+  await expect(page.getByTestId('action-dock')).toBeVisible();
+  await expect(page.getByTestId('market-hud')).not.toHaveAttribute('open', '');
+  await expect(page.getByTestId('market-card')).not.toBeVisible();
+  await page.getByTestId('market-hud').locator('summary').click();
+  await expect(page.getByTestId('market-card')).toBeVisible();
+  await page.getByTestId('market-hud').locator('summary').click();
+  await expect(page.getByTestId('market-card')).not.toBeVisible();
+  await expect(page.locator('.collections-list')).not.toBeVisible();
   await page.getByRole('button', { name: '規則' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('button', { name: '關閉遊戲規則' }).click();
   await page.getByText('收藏任務', { exact: false }).click();
+  await expect(page.locator('.collections-list')).toBeVisible();
   await page.getByText('收藏任務', { exact: false }).click();
+  await expect(page.locator('.collections-list')).not.toBeVisible();
   await page.getByRole('button', { name: '擲骰子' }).click();
   await waitForAction(page, '產地採購');
   const buttonHeight = await page

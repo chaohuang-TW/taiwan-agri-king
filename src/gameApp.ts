@@ -1,3 +1,4 @@
+import './styles/tokens.css';
 import './styles/play.css';
 import { BOARD_TILES } from './data/board';
 import { COLLECTION_GOALS } from './data/collectionGoals';
@@ -44,8 +45,11 @@ const root: HTMLDivElement = mount;
 const params = new URLSearchParams(window.location.search);
 const testMode = params.get('testMode') === '1';
 const scenario = params.get('scenario') ?? '';
+const cameraTestScenario = scenario === 'movement' || scenario === 'cpu-camera';
 const uiDelay = {
-  step: testMode ? 35 : 320,
+  // Camera E2E needs one render frame per step even on a busy CI runner.
+  // This affects only deterministic test scenarios, never production play.
+  step: testMode ? (cameraTestScenario ? 260 : 35) : 320,
   arrival: testMode ? 45 : 500,
   returning: testMode ? 45 : 400,
   handoff: testMode ? 30 : 620,
@@ -320,7 +324,9 @@ function updateNameFields(count: number): void {
 
 function initializePlaying(game: GameState): void {
   state = game;
-  root.innerHTML = `<div class="game-shell"><header class="game-topbar"><a class="game-logo" href="./">臺灣農產王</a><div class="turn-status" aria-live="polite"><strong data-testid="round">第 ${game.round} / 12 輪</strong><span data-testid="season">${SEASON_SYMBOLS[game.season]} ${getSeasonLabel(game.season)}</span><span data-testid="current-player">${escapeHtml(getCurrentPlayer(game).name)}</span></div><nav><button type="button" data-action="open-rules">規則</button><button type="button" data-action="open-atlas">圖鑑</button></nav></header><main class="play-layout"><aside class="players-rail" aria-label="玩家資料"><h2>玩家</h2><div id="players-panel" class="players-scroll"></div></aside><section id="board-host" class="board-host"></section><aside class="insight-rail"><div id="market-panel"></div><details open><summary>收藏任務 <span>12</span></summary><div id="collections-panel" class="collections-list"></div></details></aside><section id="action-panel" class="action-panel" aria-label="目前操作"></section></main><div id="handoff" class="handoff" aria-live="assertive" hidden></div><p id="cpu-status" class="cpu-status" aria-live="polite"></p><p id="game-error" class="game-error" role="alert"></p></div>${sharedDialogs()}`;
+  root.innerHTML = `<div class="game-shell"><header class="game-topbar"><div class="game-brand-lockup"><a class="game-logo" href="./">臺灣農產王</a><span class="game-subtitle">環島產地爭霸戰</span></div><div class="turn-status" aria-live="polite"><strong data-testid="round">第 ${game.round} / 12 輪</strong><span data-testid="season">${SEASON_SYMBOLS[game.season]} ${getSeasonLabel(game.season)}</span><span data-testid="current-player">${escapeHtml(getCurrentPlayer(game).name)}</span></div><nav><button type="button" data-action="open-rules">規則</button><button type="button" data-action="open-atlas">圖鑑</button></nav></header><main class="play-layout game-stage" data-layout="production"><section id="board-host" class="board-host" aria-label="環島遊戲棋盤"></section><aside class="players-rail players-hud" aria-label="玩家資料" data-testid="players-hud"><div class="rail-heading"><span>玩家席位</span><h2>環島採購團</h2></div><div id="players-panel" class="players-scroll"></div></aside><aside class="insight-rail stage-info-hud" aria-label="市場與收藏"><details class="market-hud" data-testid="market-hud"><summary>市場資訊</summary><div id="market-panel"></div></details><details class="collections-drawer" data-testid="collections-drawer"><summary>收藏任務 <span>12</span></summary><div id="collections-panel" class="collections-list"></div></details></aside><section id="action-panel" class="action-panel" aria-label="目前操作" data-testid="action-dock"></section></main><div id="handoff" class="handoff" aria-live="assertive" hidden></div><p id="cpu-status" class="cpu-status" aria-live="polite"></p><p id="game-error" class="game-error" role="alert"></p></div>${sharedDialogs()}`;
+  const marketHud = document.querySelector<HTMLDetailsElement>('.market-hud');
+  if (marketHud) marketHud.open = !window.matchMedia('(max-width: 900px)').matches;
   const host = document.querySelector<HTMLElement>('#board-host')!;
   board = createBoardView(host, game);
   camera = new BoardCameraController(board.viewport, board.content);

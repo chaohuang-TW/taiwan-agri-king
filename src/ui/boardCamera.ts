@@ -117,7 +117,9 @@ export class BoardCameraController {
       settled: false,
       stepIndex,
     };
-    this.scheduleApply();
+    // Commit focus transforms in the same frame as the DOM token update so
+    // observers never capture a mixed camera/token frame during a step.
+    this.applyCurrent();
   }
 
   overview(mode: BoardCameraMode = 'returning'): void {
