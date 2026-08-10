@@ -61,6 +61,22 @@ type DiceObservation = {
   animationName: string;
 };
 
+type GeometryRect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+};
+
+type BoardArtworkGeometry = {
+  viewport: GeometryRect;
+  artwork: GeometryRect;
+  cameraState: string | null;
+  cameraSettled: boolean;
+};
+
 function observeDiceInDocument(): void {
   const start = (): void => {
     const observations: DiceObservation[] = [];
@@ -289,6 +305,121 @@ async function waitForCameraSamples(
   );
 }
 
+async function waitForStableBoardArtworkGeometry(page: Page): Promise<BoardArtworkGeometry> {
+  return page.evaluate(
+    ({ consecutiveSamples, epsilon, timeout, tolerance }) =>
+      new Promise<BoardArtworkGeometry>((resolve, reject) => {
+        type GeometrySample = BoardArtworkGeometry & {
+          valid: boolean;
+          contained: boolean;
+          containment: {
+            left: boolean;
+            right: boolean;
+            top: boolean;
+            bottom: boolean;
+          };
+        };
+
+        const startedAt = performance.now();
+        let stableSamples = 0;
+        let previous: GeometrySample | null = null;
+        let latest: GeometrySample | null = null;
+
+        const toRect = (rect: DOMRect): GeometryRect => ({
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        });
+        const finiteRect = (rect: GeometryRect): boolean =>
+          Object.values(rect).every(Number.isFinite) && rect.width > 0 && rect.height > 0;
+        const geometryStable = (left: GeometrySample, right: GeometrySample): boolean => {
+          const values = (sample: GeometrySample): number[] => [
+            sample.viewport.left,
+            sample.viewport.top,
+            sample.viewport.width,
+            sample.viewport.height,
+            sample.artwork.left,
+            sample.artwork.top,
+            sample.artwork.width,
+            sample.artwork.height,
+          ];
+          return values(left).every(
+            (value, index) => Math.abs(value - values(right)[index]!) <= epsilon,
+          );
+        };
+        const sampleGeometry = (): GeometrySample | null => {
+          const camera = document.querySelector<HTMLElement>('[data-testid="board-camera"]');
+          const viewportElement = document.querySelector<HTMLElement>('.map-camera-viewport');
+          const artworkElement = document.querySelector<HTMLImageElement>(
+            '[data-testid="board-artwork-image"]',
+          );
+          if (!camera || !viewportElement || !artworkElement) return null;
+          const viewport = toRect(viewportElement.getBoundingClientRect());
+          const artwork = toRect(artworkElement.getBoundingClientRect());
+          const containment = {
+            left: artwork.left >= viewport.left - tolerance,
+            right: artwork.right <= viewport.right + tolerance,
+            top: artwork.top >= viewport.top - tolerance,
+            bottom: artwork.bottom <= viewport.bottom + tolerance,
+          };
+          const cameraSettled = camera.dataset.cameraSettled === 'true';
+          return {
+            viewport,
+            artwork,
+            cameraState: camera.dataset.cameraState ?? null,
+            cameraSettled,
+            valid: finiteRect(viewport) && finiteRect(artwork) && cameraSettled,
+            contained: Object.values(containment).every(Boolean),
+            containment,
+          };
+        };
+        const diagnostic = (): string => {
+          if (!latest) return '最後 sample：camera、viewport 或 artwork 尚未同時存在。';
+          return [
+            'Board artwork geometry did not stabilize.',
+            `viewport=${JSON.stringify(latest.viewport)}`,
+            `artwork=${JSON.stringify(latest.artwork)}`,
+            `cameraState=${latest.cameraState}`,
+            `cameraSettled=${latest.cameraSettled}`,
+            `valid=${latest.valid}`,
+            `contained=${latest.contained}`,
+            `containment=${JSON.stringify(latest.containment)}`,
+            `consecutiveStableSamples=${stableSamples}/${consecutiveSamples}`,
+          ].join('\n');
+        };
+        const nextFrame = (): void => {
+          latest = sampleGeometry();
+          if (latest?.valid && latest.contained) {
+            stableSamples = previous && geometryStable(previous, latest) ? stableSamples + 1 : 1;
+          } else {
+            stableSamples = 0;
+          }
+          if (latest && stableSamples >= consecutiveSamples) {
+            resolve({
+              viewport: latest.viewport,
+              artwork: latest.artwork,
+              cameraState: latest.cameraState,
+              cameraSettled: latest.cameraSettled,
+            });
+            return;
+          }
+          if (performance.now() - startedAt >= timeout) {
+            reject(new Error(diagnostic()));
+            return;
+          }
+          previous = latest;
+          requestAnimationFrame(nextFrame);
+        };
+
+        requestAnimationFrame(nextFrame);
+      }),
+    { consecutiveSamples: 3, epsilon: 0.5, timeout: 3000, tolerance: 5 },
+  );
+}
+
 test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ page }) => {
   const diagnostics = observePage(page);
   await page.goto('');
@@ -349,29 +480,15 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await interactionTile.focus();
   await expect(interactionTile).toBeFocused();
   await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
+  const rulesButton = page.getByRole('button', { name: '規則' });
+  await rulesButton.focus();
+  await expect(rulesButton).toBeFocused();
   await expect(page.locator('.play-layout[data-layout="production"]')).toBeVisible();
   await expect(page.getByTestId('players-hud')).toBeVisible();
   await expect(page.getByTestId('market-hud')).toBeVisible();
   await expect(page.getByTestId('action-dock')).toBeVisible();
-  await expect
-    .poll(
-      () =>
-        page.evaluate(() => {
-          const viewport = document.querySelector('.map-camera-viewport')?.getBoundingClientRect();
-          const artwork = document
-            .querySelector<HTMLImageElement>('[data-testid="board-artwork-image"]')
-            ?.getBoundingClientRect();
-          return (
-            Boolean(viewport && artwork) &&
-            artwork!.left >= viewport!.left - 5 &&
-            artwork!.right <= viewport!.right + 5 &&
-            artwork!.top >= viewport!.top - 5 &&
-            artwork!.bottom <= viewport!.bottom + 5
-          );
-        }),
-      { timeout: 1500 },
-    )
-    .toBe(true);
+  const stableBoardGeometry = await waitForStableBoardArtworkGeometry(page);
+  expect(stableBoardGeometry.cameraSettled).toBe(true);
   const boardGeometry = await page.evaluate(() => {
     const viewport = document.querySelector('.map-camera-viewport')?.getBoundingClientRect();
     const artworkImage = document
