@@ -22,9 +22,16 @@ import type {
   PendingAction,
   PlayerState,
   PurchaseSource,
+  PlayerController,
   RandomSource,
   TurnSummary,
 } from './types';
+
+export interface PlayerConfig {
+  id?: string;
+  name: string;
+  controller?: PlayerController;
+}
 
 function assertActionAllowed(state: GameState, phase: GamePhase, action: string): void {
   if (state.completed || state.phase === 'game-over') throw new Error('遊戲已結束。');
@@ -160,27 +167,26 @@ function resolveArrival(state: GameState, random: RandomSource): GameState {
   }
 }
 
-export function createGame(
-  playerNames: string[] | number,
+export function createGameWithPlayers(
+  playerConfigs: PlayerConfig[],
   random: RandomSource = defaultRandomSource,
 ): GameState {
-  const names =
-    typeof playerNames === 'number'
-      ? Array.from({ length: playerNames }, (_, index) => `玩家${index + 1}`)
-      : playerNames;
-  if (names.length < 1) throw new Error('玩家人數不得少於1人。');
-  if (names.length > 4) throw new Error('玩家人數不得超過4人。');
+  if (playerConfigs.length < 1) throw new Error('玩家人數不得少於1人。');
+  if (playerConfigs.length > 4) throw new Error('玩家人數不得超過4人。');
+  const ids = playerConfigs.map((config, index) => config.id?.trim() || `player-${index + 1}`);
+  if (new Set(ids).size !== ids.length) throw new Error('玩家ID必須穩定且唯一。');
 
   return {
     phase: 'awaiting-roll',
     round: 1,
     season: 'spring',
-    players: names.map((name, index) => ({
-      id: `player-${index + 1}`,
-      name: name.trim() || `玩家${index + 1}`,
+    players: playerConfigs.map((config, index) => ({
+      id: ids[index]!,
+      name: config.name.trim() || `玩家${index + 1}`,
       position: 0,
       funds: STARTING_FUNDS,
       productIds: [],
+      controller: config.controller ?? 'human',
     })),
     currentPlayerIndex: 0,
     marketDeck: createMarketDeck(random),
@@ -193,6 +199,20 @@ export function createGame(
     completed: false,
     rankings: null,
   };
+}
+
+export function createGame(
+  playerNames: string[] | number,
+  random: RandomSource = defaultRandomSource,
+): GameState {
+  const names =
+    typeof playerNames === 'number'
+      ? Array.from({ length: playerNames }, (_, index) => `玩家${index + 1}`)
+      : playerNames;
+  return createGameWithPlayers(
+    names.map((name) => ({ name, controller: 'human' })),
+    random,
+  );
 }
 
 export function rollDice(state: GameState, random: RandomSource = defaultRandomSource): GameState {

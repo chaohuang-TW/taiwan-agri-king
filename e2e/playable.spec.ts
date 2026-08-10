@@ -65,6 +65,8 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(page.getByTestId('market-card')).toBeVisible();
   await expect(page.getByText('收藏任務', { exact: false })).toBeVisible();
   await expect(page.getByTestId('funds-player-1')).toHaveText('15');
+  await expect(page.locator('[data-testid^="player-card-player-"]')).toHaveCount(4);
+  await expect(page.getByTestId('player-card-player-3')).toContainText('電腦');
   await expectPageHealthy(page, diagnostics);
 });
 
@@ -307,4 +309,34 @@ test('Reduced Motion維持逐格邏輯並停用Camera縮放', async ({ page }) =
     '1',
   );
   await expect(page.getByRole('button', { name: /採購/ }).first()).toBeVisible();
+});
+
+test.describe('CPU回合情境', () => {
+  for (const scenario of [
+    'cpu-purchase',
+    'cpu-skip',
+    'cpu-sale',
+    'cpu-transport',
+    'cpu-camera',
+    'cpu-round',
+    'cpu-restart',
+  ]) {
+    test(`${scenario}由共用引擎完成並交棒真人`, async ({ page }) => {
+      const diagnostics = observePage(page);
+      await page.goto(`game.html?testMode=1&scenario=${scenario}`);
+      await expect(page.getByTestId('player-card-player-2')).toContainText('電腦');
+      await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+      await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-settled', 'true');
+      expect(diagnostics.consoleErrors).toEqual([]);
+      expect(diagnostics.failedAssets).toEqual([]);
+    });
+  }
+
+  test('cpu-game-over完成最後CPU回合並顯示排名', async ({ page }) => {
+    const diagnostics = observePage(page);
+    await page.goto('game.html?testMode=1&scenario=cpu-game-over');
+    await expect(page.getByTestId('rankings')).toBeVisible({ timeout: 5000 });
+    expect(diagnostics.consoleErrors).toEqual([]);
+    expect(diagnostics.failedAssets).toEqual([]);
+  });
 });

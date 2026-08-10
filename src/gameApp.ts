@@ -9,7 +9,7 @@ import {
   choosePurchase,
   chooseSale,
   chooseTransport,
-  createGame,
+  createGameWithPlayers,
   endTurn,
   getCurrentProductValue,
   rollDice,
@@ -20,6 +20,8 @@ import {
 } from './game/engine';
 import { getCurrentPlayer, getProductById, getTileById } from './game/selectors';
 import type { GameState, Product, PurchaseSource, RandomSource } from './game/types';
+import { decideCpuAction, isCpuPlayer } from './cpu/cpuStrategy';
+import type { CpuDecision } from './cpu/cpuTypes';
 import { BoardCameraController } from './ui/boardCamera';
 import { createBoardView, type BoardView } from './ui/renderBoard';
 import {
@@ -42,11 +44,13 @@ const params = new URLSearchParams(window.location.search);
 const testMode = params.get('testMode') === '1';
 const scenario = params.get('scenario') ?? '';
 const uiDelay = {
-  dice: testMode ? 90 : 520,
-  step: testMode ? 90 : 320,
-  arrival: testMode ? 190 : 500,
-  returning: testMode ? 190 : 400,
-  handoff: testMode ? 80 : 620,
+  dice: testMode ? 35 : 520,
+  step: testMode ? 35 : 320,
+  arrival: testMode ? 45 : 500,
+  returning: testMode ? 45 : 400,
+  handoff: testMode ? 30 : 620,
+  cpuThinking: testMode ? 35 : 320,
+  cpuDecision: testMode ? 35 : 360,
 };
 
 let state: GameState | null = null;
@@ -57,6 +61,7 @@ let errorMessage = '';
 let lastEventCardId: string | null = null;
 let lifecycleGeneration = 0;
 const timers = new Set<number>();
+let cpuStatusMessage = '';
 
 function escapeHtml(value: string): string {
   return value
@@ -87,6 +92,7 @@ function cleanupUiLifecycle(): void {
   camera = null;
   board = null;
   ui = createUiPresentation();
+  cpuStatusMessage = '';
 }
 
 function getScenarioRandom(): RandomSource {
@@ -94,8 +100,31 @@ function getScenarioRandom(): RandomSource {
   return () => 0;
 }
 
+function gameRandom(): RandomSource {
+  return testMode ? getScenarioRandom() : Math.random;
+}
+
 function createScenarioGame(names: string[]): GameState {
-  let game = createGame(names, testMode ? getScenarioRandom() : Math.random);
+  const cpuScenario = scenario.startsWith('cpu-');
+  const normalConfigs = names.map((name) => ({ name, controller: 'human' as const }));
+  const configs =
+    !testMode && names.length < 4
+      ? [
+          ...normalConfigs,
+          ...Array.from({ length: 4 - names.length }, (_, index) => ({
+            name: `電腦採購員${index + 1}`,
+            controller: 'cpu' as const,
+          })),
+        ]
+      : cpuScenario
+        ? [
+            { name: '測試真人', controller: 'human' as const },
+            { name: '測試電腦1', controller: 'cpu' as const },
+            { name: '測試電腦2', controller: 'cpu' as const },
+            { name: '測試電腦3', controller: 'cpu' as const },
+          ]
+        : normalConfigs;
+  let game = createGameWithPlayers(configs, testMode ? getScenarioRandom() : Math.random);
   if (!testMode) return game;
   const startingPositions: Record<string, number> = {
     movement: 23,
@@ -107,6 +136,14 @@ function createScenarioGame(names: string[]): GameState {
     transport: 12,
     collection: 18,
     camera: 23,
+    'cpu-purchase': 0,
+    'cpu-skip': 0,
+    'cpu-sale': 6,
+    'cpu-transport': 12,
+    'cpu-camera': 23,
+    'cpu-round': 0,
+    'cpu-game-over': 0,
+    'cpu-restart': 0,
   };
   const position = startingPositions[scenario] ?? 0;
   const inventoryByScenario: Record<string, string[]> = {
@@ -115,12 +152,26 @@ function createScenarioGame(names: string[]): GameState {
   };
   game = {
     ...game,
-    round: scenario === 'game-over' ? 12 : 1,
-    season: scenario === 'game-over' ? 'winter' : game.season,
+    round: scenario === 'game-over' || scenario === 'cpu-game-over' ? 12 : 1,
+    season: scenario === 'game-over' || scenario === 'cpu-game-over' ? 'winter' : game.season,
+    currentPlayerIndex:
+      scenario === 'cpu-game-over'
+        ? game.players.length - 1
+        : cpuScenario
+          ? 1
+          : game.currentPlayerIndex,
     players: game.players.map((player, index) =>
       index === 0
-        ? { ...player, position, productIds: inventoryByScenario[scenario] ?? player.productIds }
-        : player,
+        ? {
+            ...player,
+            position,
+            productIds: inventoryByScenario[scenario] ?? player.productIds,
+          }
+        : scenario === 'cpu-sale' && index === 1
+          ? { ...player, position, funds: 3, productIds: ['taoyuan-rice'] }
+          : scenario === 'cpu-skip' && index === 1
+            ? { ...player, position, funds: 0 }
+            : player,
     ),
     marketDeck:
       scenario === 'farmers'
@@ -157,8 +208,9 @@ function renderPlayers(game: GameState): string {
         ({ completed }) => completed,
       ).length;
       const tile = BOARD_TILES.find(({ position }) => position === player.position)!;
+      const controllerLabel = isCpuPlayer(player) ? '電腦' : '真人';
       return `<article class="player-status player-${index + 1} ${index === game.currentPlayerIndex ? 'is-current' : ''}" data-testid="player-card-${player.id}">
-        <div class="player-status-title"><span class="player-piece">P${index + 1}</span><h3>${escapeHtml(player.name)}</h3>${index === game.currentPlayerIndex ? '<em>目前玩家</em>' : ''}</div>
+        <div class="player-status-title"><span class="player-piece">P${index + 1}</span><h3>${escapeHtml(player.name)}</h3><span class="controller-label">${controllerLabel}</span>${index === game.currentPlayerIndex ? '<em>目前回合</em>' : ''}</div>
         <dl><div><dt>採購金</dt><dd data-testid="funds-${player.id}">${player.funds}</dd></div><div><dt>位置</dt><dd>${tile.shortName}</dd></div><div><dt>產品</dt><dd data-testid="product-count-${player.id}">${player.productIds.length}</dd></div><div><dt>收藏</dt><dd>${completed}</dd></div></dl>
         <p>目前估值 <strong data-testid="score-${player.id}">${score.total}</strong></p>
       </article>`;
@@ -183,11 +235,12 @@ function renderMarket(game: GameState): string {
 function renderActionPanel(game: GameState): string {
   const player = getCurrentPlayer(game);
   const pending = game.pendingAction;
+  const cpuLabel = isCpuPlayer(player) ? '<span class="cpu-badge">電腦玩家</span>' : '';
   if (game.phase === 'awaiting-roll') {
-    return `<div class="action-copy"><span>輪到 ${escapeHtml(player.name)}</span><h2>準備前往下一站</h2><p>擲出六面骰，棋子會沿主環島路線逐格前進。</p></div><div class="dice-action"><output class="dice-face" data-testid="dice-result" aria-live="polite">${game.lastDiceRoll ?? '骰'}</output><button class="primary-action" type="button" data-action="roll" ${ui.locked ? 'disabled' : ''}>擲骰子</button></div>`;
+    return `<div class="action-copy"><span>輪到 ${escapeHtml(player.name)} ${cpuLabel}</span><h2>準備前往下一站</h2><p>${isCpuPlayer(player) ? '電腦會依照公開資訊自動決定。' : '擲出六面骰，棋子會沿主環島路線逐格前進。'}</p></div><div class="dice-action"><output class="dice-face" data-testid="dice-result" aria-live="polite">${game.lastDiceRoll ?? '骰'}</output><button class="primary-action" type="button" data-action="roll" ${ui.locked || isCpuPlayer(player) ? 'disabled' : ''}>擲骰子</button></div>`;
   }
   if (game.phase === 'moving') {
-    return `<div class="action-copy"><span>正在移動</span><h2>${escapeHtml(player.name)} 前進中</h2><p aria-live="polite">骰出 ${game.lastDiceRoll} 點，第 ${game.movement?.stepIndex ?? 0} / ${game.movement?.path.length ?? 0} 格。</p></div><div class="dice-action"><output class="dice-face is-rolling" data-testid="dice-result">${game.lastDiceRoll}</output><button class="primary-action" disabled>移動中</button></div>`;
+    return `<div class="action-copy"><span>正在移動 ${cpuLabel}</span><h2>${escapeHtml(player.name)} 前進中</h2><p aria-live="polite">骰出 ${game.lastDiceRoll} 點，第 ${game.movement?.stepIndex ?? 0} / ${game.movement?.path.length ?? 0} 格。</p></div><div class="dice-action"><output class="dice-face is-rolling" data-testid="dice-result">${game.lastDiceRoll}</output><button class="primary-action" disabled>移動中</button></div>`;
   }
   if (game.phase === 'awaiting-purchase' && pending) {
     const island = pending.kind === 'island-purchase';
@@ -225,7 +278,9 @@ function renderActionPanel(game: GameState): string {
       : null;
     return `<div class="action-copy"><span>${eventCard ? '市場行情更新' : '回合摘要'}</span><h2>${escapeHtml(game.turnSummary?.title ?? '本回合完成')}</h2><ul aria-live="polite">${(game.turnSummary?.lines ?? []).map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>${eventCard ? `<div class="event-reveal"><strong>${escapeHtml(eventCard.title)}</strong><p>${escapeHtml(eventCard.description)}</p></div>` : ''}</div><button class="primary-action" type="button" data-action="end-turn" ${ui.locked ? 'disabled' : ''}>結束回合</button>`;
   }
-  return '';
+  return cpuStatusMessage
+    ? `<div class="action-copy"><span>電腦回合</span><h2>${escapeHtml(player.name)} 思考中</h2><p aria-live="polite" data-testid="cpu-status">${escapeHtml(cpuStatusMessage)}</p></div>`
+    : '';
 }
 
 function renderRanking(game: GameState): string {
@@ -239,7 +294,7 @@ function renderRanking(game: GameState): string {
 }
 
 function renderSetup(): void {
-  root.innerHTML = `<main class="setup-screen"><header class="game-brand"><a href="./">臺灣農產王</a><span>Phase 3 開發預覽</span></header><section class="setup-card" aria-labelledby="setup-title"><div class="setup-intro"><span>真人共玩</span><h1 id="setup-title">這趟環島，有幾位採購王？</h1><p>選擇 1 至 4 名玩家，同一臺裝置輪流操作。</p></div><form id="player-setup"><fieldset><legend>玩家人數</legend><div class="count-options">${[1, 2, 3, 4].map((count) => `<label><input type="radio" name="player-count" value="${count}" ${count === 2 ? 'checked' : ''}><span>${count}</span></label>`).join('')}</div></fieldset><div id="player-name-fields" class="name-fields"></div><button class="primary-action" type="submit">開始環島</button></form><div class="setup-links"><button type="button" data-action="open-rules">遊戲規則</button><button type="button" data-action="open-atlas">農產圖鑑</button></div></section></main>${sharedDialogs()}`;
+  root.innerHTML = `<main class="setup-screen"><header class="game-brand"><a href="./">臺灣農產王</a><span>Phase 4 CPU 開發預覽</span></header><section class="setup-card" aria-labelledby="setup-title"><div class="setup-intro"><span>真人＋電腦對手</span><h1 id="setup-title">這趟環島，有幾位採購王？</h1><p>選擇 1 至 4 名真人；不足 4 席會由電腦依公開資訊自動補位。</p></div><form id="player-setup"><fieldset><legend>真人玩家人數</legend><div class="count-options">${[1, 2, 3, 4].map((count) => `<label><input type="radio" name="player-count" value="${count}" ${count === 2 ? 'checked' : ''}><span>${count}</span></label>`).join('')}</div></fieldset><div id="player-name-fields" class="name-fields"></div><p class="cpu-setup-note">電腦策略：收藏進度、產值／成本、資金保留與市場溢價。</p><button class="primary-action" type="submit">開始環島</button></form><div class="setup-links"><button type="button" data-action="open-rules">遊戲規則</button><button type="button" data-action="open-atlas">農產圖鑑</button></div></section></main>${sharedDialogs()}`;
   updateNameFields(2);
 }
 
@@ -259,7 +314,7 @@ function updateNameFields(count: number): void {
 
 function initializePlaying(game: GameState): void {
   state = game;
-  root.innerHTML = `<div class="game-shell"><header class="game-topbar"><a class="game-logo" href="./">臺灣農產王</a><div class="turn-status" aria-live="polite"><strong data-testid="round">第 ${game.round} / 12 輪</strong><span data-testid="season">${SEASON_SYMBOLS[game.season]} ${getSeasonLabel(game.season)}</span><span data-testid="current-player">${escapeHtml(getCurrentPlayer(game).name)}</span></div><nav><button type="button" data-action="open-rules">規則</button><button type="button" data-action="open-atlas">圖鑑</button></nav></header><main class="play-layout"><aside class="players-rail" aria-label="玩家資料"><h2>玩家</h2><div id="players-panel" class="players-scroll"></div></aside><section id="board-host" class="board-host"></section><aside class="insight-rail"><div id="market-panel"></div><details open><summary>收藏任務 <span>12</span></summary><div id="collections-panel" class="collections-list"></div></details></aside><section id="action-panel" class="action-panel" aria-label="目前操作"></section></main><div id="handoff" class="handoff" aria-live="assertive" hidden></div><p id="game-error" class="game-error" role="alert"></p></div>${sharedDialogs()}`;
+  root.innerHTML = `<div class="game-shell"><header class="game-topbar"><a class="game-logo" href="./">臺灣農產王</a><div class="turn-status" aria-live="polite"><strong data-testid="round">第 ${game.round} / 12 輪</strong><span data-testid="season">${SEASON_SYMBOLS[game.season]} ${getSeasonLabel(game.season)}</span><span data-testid="current-player">${escapeHtml(getCurrentPlayer(game).name)}</span></div><nav><button type="button" data-action="open-rules">規則</button><button type="button" data-action="open-atlas">圖鑑</button></nav></header><main class="play-layout"><aside class="players-rail" aria-label="玩家資料"><h2>玩家</h2><div id="players-panel" class="players-scroll"></div></aside><section id="board-host" class="board-host"></section><aside class="insight-rail"><div id="market-panel"></div><details open><summary>收藏任務 <span>12</span></summary><div id="collections-panel" class="collections-list"></div></details></aside><section id="action-panel" class="action-panel" aria-label="目前操作"></section></main><div id="handoff" class="handoff" aria-live="assertive" hidden></div><p id="cpu-status" class="cpu-status" aria-live="polite"></p><p id="game-error" class="game-error" role="alert"></p></div>${sharedDialogs()}`;
   const host = document.querySelector<HTMLElement>('#board-host')!;
   board = createBoardView(host, game);
   camera = new BoardCameraController(board.viewport, board.content);
@@ -291,6 +346,9 @@ function renderDynamic(): void {
   if (round) round.textContent = `第 ${game.round} / 12 輪`;
   if (season) season.textContent = `${SEASON_SYMBOLS[game.season]} ${getSeasonLabel(game.season)}`;
   if (current) current.textContent = getCurrentPlayer(game).name;
+  const cpuStatus = document.querySelector<HTMLElement>('#cpu-status');
+  if (cpuStatus)
+    cpuStatus.textContent = isCpuPlayer(getCurrentPlayer(game)) ? cpuStatusMessage : '';
   const error = document.querySelector<HTMLElement>('#game-error');
   if (error) error.textContent = errorMessage;
 }
@@ -326,23 +384,20 @@ function setState(action: () => GameState): void {
   renderDynamic();
 }
 
-async function runMovement(): Promise<void> {
+async function animateMovement(generation: number): Promise<boolean> {
   const game = state;
-  if (!game || game.phase !== 'awaiting-roll' || ui.locked) return;
-  const generation = lifecycleGeneration;
-  ui.locked = true;
-  lastEventCardId = null;
+  if (!game || game.phase !== 'awaiting-roll') return false;
   try {
-    state = rollDice(game, testMode ? getScenarioRandom() : Math.random);
+    state = rollDice(game, gameRandom());
     ui.phase = 'showing-dice';
     renderDynamic();
     const player = getCurrentPlayer(state);
     const token = board?.getToken(player.id);
     if (token) camera?.focus(token, 'focus-player', player.id, player.position, 0);
     await scheduleUiDelay(uiDelay.dice);
-    if (generation !== lifecycleGeneration) return;
+    if (generation !== lifecycleGeneration) return false;
     while (state?.phase === 'moving') {
-      state = advanceMovementStep(state, testMode ? getScenarioRandom() : Math.random);
+      state = advanceMovementStep(state, gameRandom());
       board?.update(state);
       const shownPosition =
         state.movement?.path[(state.movement?.stepIndex ?? 1) - 1] ?? player.position;
@@ -357,9 +412,9 @@ async function runMovement(): Promise<void> {
         );
       renderDynamic();
       await scheduleUiDelay(uiDelay.step);
-      if (generation !== lifecycleGeneration) return;
+      if (generation !== lifecycleGeneration) return false;
     }
-    if (!state) return;
+    if (!state) return false;
     if (
       state.phase === 'awaiting-turn-end' &&
       activeMarketCard(state)?.id !== game.marketDeck.activeCardId
@@ -382,10 +437,102 @@ async function runMovement(): Promise<void> {
     await scheduleUiDelay(uiDelay.returning);
     camera?.settleOverview();
     ui.phase = 'idle';
+    return generation === lifecycleGeneration;
+  } catch (error) {
+    errorMessage = error instanceof Error ? error.message : String(error);
+    return false;
+  }
+}
+
+async function runMovement(): Promise<void> {
+  if (
+    !state ||
+    state.phase !== 'awaiting-roll' ||
+    ui.locked ||
+    isCpuPlayer(getCurrentPlayer(state))
+  )
+    return;
+  const generation = lifecycleGeneration;
+  ui.locked = true;
+  lastEventCardId = null;
+  await animateMovement(generation);
+  ui.locked = false;
+  renderDynamic();
+}
+
+function applyCpuDecision(game: GameState, decision: CpuDecision): GameState {
+  switch (decision.kind) {
+    case 'purchase':
+      return decision.source === 'production' && game.pendingAction?.kind === 'island-purchase'
+        ? chooseIslandPurchase(game, decision.productId)
+        : choosePurchase(game, decision.productId);
+    case 'skip-purchase':
+      return game.pendingAction?.kind === 'island-purchase'
+        ? skipIslandPurchase(game)
+        : skipPurchase(game);
+    case 'sale':
+      return chooseSale(game, decision.productId);
+    case 'skip-sale':
+      return skipSale(game);
+    case 'transport':
+      return chooseTransport(game, decision.destinationId);
+    case 'skip-transport':
+      return skipTransport(game);
+  }
+}
+
+async function runCpuTurns(): Promise<void> {
+  if (!state || !isCpuPlayer(getCurrentPlayer(state)) || ui.locked) return;
+  const generation = lifecycleGeneration;
+  ui.locked = true;
+  try {
+    while (
+      state &&
+      state.phase !== 'game-over' &&
+      isCpuPlayer(getCurrentPlayer(state)) &&
+      generation === lifecycleGeneration
+    ) {
+      if (state.phase === 'awaiting-roll') {
+        cpuStatusMessage = '擲骰並沿棋盤逐格移動';
+        renderDynamic();
+        await scheduleUiDelay(uiDelay.cpuThinking);
+        if (!(await animateMovement(generation))) break;
+        continue;
+      }
+      if (
+        state.phase === 'awaiting-purchase' ||
+        state.phase === 'awaiting-sale' ||
+        state.phase === 'awaiting-transport'
+      ) {
+        cpuStatusMessage = '依收藏進度、成本與市場行情評估';
+        renderDynamic();
+        await scheduleUiDelay(uiDelay.cpuThinking);
+        const decision = decideCpuAction(state);
+        cpuStatusMessage = decision.reason;
+        renderDynamic();
+        await scheduleUiDelay(uiDelay.cpuDecision);
+        state = applyCpuDecision(state, decision);
+        renderDynamic();
+        await scheduleUiDelay(uiDelay.cpuDecision);
+        continue;
+      }
+      if (state.phase === 'awaiting-turn-end') {
+        cpuStatusMessage = '完成回合，交棒給下一位玩家';
+        renderDynamic();
+        await scheduleUiDelay(uiDelay.cpuDecision);
+        state = endTurn(state, gameRandom());
+        lastEventCardId = null;
+        cpuStatusMessage = '';
+        renderDynamic();
+        continue;
+      }
+      break;
+    }
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : String(error);
   } finally {
     ui.locked = false;
+    cpuStatusMessage = '';
     renderDynamic();
   }
 }
@@ -430,7 +577,7 @@ async function endCurrentTurn(): Promise<void> {
   if (!state || state.phase !== 'awaiting-turn-end' || ui.locked) return;
   ui.locked = true;
   const previousIndex = state.currentPlayerIndex;
-  state = endTurn(state, testMode ? getScenarioRandom() : Math.random);
+  state = endTurn(state, gameRandom());
   lastEventCardId = null;
   if (state.phase === 'game-over') {
     ui.locked = false;
@@ -443,6 +590,12 @@ async function endCurrentTurn(): Promise<void> {
     handoff.hidden = false;
     await scheduleUiDelay(uiDelay.handoff);
     handoff.hidden = true;
+  }
+  if (isCpuPlayer(getCurrentPlayer(state))) {
+    renderDynamic();
+    ui.locked = false;
+    void runCpuTurns();
+    return;
   }
   ui.locked = false;
   renderDynamic();
@@ -492,6 +645,7 @@ root.addEventListener('submit', (event) => {
   );
   cleanupUiLifecycle();
   initializePlaying(createScenarioGame(names));
+  if (state && isCpuPlayer(getCurrentPlayer(state))) void runCpuTurns();
 });
 
 root.addEventListener('click', (event) => {
@@ -525,10 +679,11 @@ root.addEventListener('click', (event) => {
 });
 
 if (testMode && scenario) {
-  const playerCount = scenario === 'multiplayer' ? 2 : 1;
+  const playerCount = scenario === 'multiplayer' ? 2 : scenario.startsWith('cpu-') ? 4 : 1;
   initializePlaying(
     createScenarioGame(Array.from({ length: playerCount }, (_, index) => `測試玩家${index + 1}`)),
   );
+  if (state && isCpuPlayer(getCurrentPlayer(state))) void runCpuTurns();
   if (scenario === 'game-over') {
     const actionPanel = document.querySelector<HTMLElement>('#action-panel');
     actionPanel?.insertAdjacentHTML(
