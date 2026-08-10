@@ -302,6 +302,71 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(page.getByTestId('current-player')).toHaveText('阿禾');
   await expect(page.locator('.board-tile')).toHaveCount(30);
   await expect(page.locator('.board-tile[data-position="27"]')).toBeVisible();
+  await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-settled', 'true');
+  await expect(page.locator('.taiwan-board-art')).toBeVisible();
+  await expect(page.locator('.taiwan-board-art .terrain-layer')).toBeVisible();
+  await expect(page.locator('.taiwan-board-art .route-layer')).toBeVisible();
+  await expect(page.locator('.offshore-panel')).toBeVisible();
+  await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const viewport = document.querySelector('.map-camera-viewport')?.getBoundingClientRect();
+          const artwork = document.querySelector('.taiwan-board-art')?.getBoundingClientRect();
+          return (
+            Boolean(viewport && artwork) &&
+            artwork!.left >= viewport!.left - 5 &&
+            artwork!.right <= viewport!.right + 5 &&
+            artwork!.top >= viewport!.top - 5 &&
+            artwork!.bottom <= viewport!.bottom + 5
+          );
+        }),
+      { timeout: 1500 },
+    )
+    .toBe(true);
+  const boardGeometry = await page.evaluate(() => {
+    const viewport = document.querySelector('.map-camera-viewport')?.getBoundingClientRect();
+    const artwork = document.querySelector('.taiwan-board-art')?.getBoundingClientRect();
+    const positions = Array.from(document.querySelectorAll<HTMLElement>('.board-tile')).map(
+      (tile) => Number(tile.dataset.position),
+    );
+    const centers = Array.from(document.querySelectorAll<HTMLElement>('.board-tile')).map(
+      (tile) => {
+        const rect = tile.getBoundingClientRect();
+        return [rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
+      },
+    );
+    let minimumDistance = Number.POSITIVE_INFINITY;
+    for (let index = 0; index < centers.length; index += 1) {
+      for (let next = index + 1; next < centers.length; next += 1) {
+        minimumDistance = Math.min(
+          minimumDistance,
+          Math.hypot(
+            centers[index]![0] - centers[next]![0],
+            centers[index]![1] - centers[next]![1],
+          ),
+        );
+      }
+    }
+    const token = document.querySelector<HTMLElement>('[data-testid="player-token-player-1"]');
+    const tokenRect = token?.getBoundingClientRect();
+    return {
+      positions,
+      artworkInsideViewport:
+        Boolean(viewport && artwork) &&
+        artwork!.left >= viewport!.left - 5 &&
+        artwork!.right <= viewport!.right + 5 &&
+        artwork!.top >= viewport!.top - 5 &&
+        artwork!.bottom <= viewport!.bottom + 5,
+      minimumDistance,
+      tokenVisible: Boolean(tokenRect && tokenRect.width > 0 && tokenRect.height > 0),
+    };
+  });
+  expect(boardGeometry.positions).toEqual(Array.from({ length: 30 }, (_, position) => position));
+  expect(boardGeometry.artworkInsideViewport).toBe(true);
+  expect(boardGeometry.minimumDistance).toBeGreaterThan(14);
+  expect(boardGeometry.tokenVisible).toBe(true);
   await expect(page.getByTestId('market-card')).toBeVisible();
   await expect(page.getByText('收藏任務', { exact: false })).toBeVisible();
   await expect(page.getByTestId('funds-player-1')).toHaveText('15');
@@ -487,6 +552,14 @@ test('手機390×844可完成一回合並操作規則與收藏', async ({ page }
   await page.goto('game.html?testMode=1&scenario=purchase');
   expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
   await expect(page.locator('.board-frame')).toBeVisible();
+  await expect(page.locator('.taiwan-board-art')).toBeVisible();
+  await expect(page.locator('.taiwan-board-art .terrain-layer')).toBeVisible();
+  await expect(page.locator('.taiwan-board-art .route-layer')).toBeVisible();
+  await expect(page.locator('.offshore-panel')).toBeVisible();
+  await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
+  await expect(page.locator('.board-tile[data-position="27"]')).toBeVisible();
+  await expect(page.locator('.board-tile[data-position="28"]')).toBeVisible();
+  await expect(page.locator('.board-tile[data-position="29"]')).toBeVisible();
   await expect(page.getByTestId('market-card')).toBeVisible();
   await expect(page.locator('.collections-list')).toBeVisible();
   await page.getByRole('button', { name: '規則' }).click();
