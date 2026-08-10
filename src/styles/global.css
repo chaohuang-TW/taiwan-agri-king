@@ -1173,3 +1173,76 @@ dialog {
     font-size: 2.5rem;
   }
 }
+
+/* Phase 5A-3 home surface: carry the tabletop and paper-card language into the landing page. */
+body {
+  background:
+    radial-gradient(circle at 12% 0%, rgb(217 168 62 / 12%), transparent 22rem),
+    linear-gradient(145deg, #f1eadb 0%, #e7dfcd 100%);
+}
+
+.site-header {
+  border-bottom-color: rgb(132 95 50 / 26%);
+}
+
+.brand-mark {
+  border-radius: 12px 12px 5px 12px;
+  background: var(--field-dark);
+  box-shadow: 5px 5px 0 var(--sun);
+}
+
+.hero-board {
+  overflow: hidden;
+  border: 8px solid #55402a;
+  border-radius: 28px;
+  background:
+    linear-gradient(90deg, rgb(70 51 33 / 6%) 1px, transparent 1px),
+    linear-gradient(0deg, rgb(70 51 33 / 6%) 1px, transparent 1px),
+    linear-gradient(145deg, #f8efda, #d9c18a);
+  background-size:
+    34px 34px,
+    34px 34px,
+    auto;
+  box-shadow:
+    0 22px 54px rgb(47 30 17 / 24%),
+    inset 0 0 0 2px #a57d4c,
+    inset 0 0 0 6px rgb(255 248 220 / 58%);
+}
+
+.hero-board::after {
+  border-color: rgb(113 78 38 / 28%);
+}
+
+.hero-island {
+  border-color: #4f7754;
+  background: linear-gradient(155deg, #e1ecc6, #9fbd8c);
+  box-shadow: 0 28px 70px rgb(36 67 51 / 20%);
+}
+
+.hero-route {
+  border-color: rgb(47 112 77 / 56%);
+}
+
+.hero-island > strong {
+  background: var(--field-dark);
+  box-shadow: 0 8px 0 rgb(217 168 62 / 78%);
+}
+
+.marker {
+  border: 2px solid #fff9ec;
+  background: var(--ocean);
+  box-shadow: 0 6px 15px rgb(49 113 129 / 24%);
+}
+
+.offshore-set span {
+  border-color: var(--ocean);
+  background: #fff9ec;
+  box-shadow: 0 8px 16px rgb(49 113 129 / 12%);
+}
+
+@media (max-width: 760px) {
+  .hero-board {
+    border-width: 6px;
+    border-radius: 22px;
+  }
+}
