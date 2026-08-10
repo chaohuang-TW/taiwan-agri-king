@@ -178,10 +178,10 @@ function render(): void {
             <div class="state-item"><span>Season</span><strong data-testid="season">${game.season}</strong></div>
             <div class="state-item"><span>Current player</span><strong data-testid="current-player">${getCurrentPlayer(game).name}</strong></div>
             <div class="state-item"><span>Phase</span><strong data-testid="phase">${game.phase}</strong></div>
-            <div class="state-item"><span>Dice</span><strong data-testid="dice">${game.lastDiceRoll ?? '—'}</strong></div>
+            <div class="state-item"><span>Dice</span><strong data-testid="dice">${game.lastDiceRoll ?? '無'}</strong></div>
             <div class="state-item"><span>Position</span><strong data-testid="position">${getCurrentPlayer(game).position}</strong></div>
             <div class="state-item"><span>Active market card</span><strong data-testid="active-card">${activeCardTitle(game)}</strong></div>
-            <div class="state-item"><span>Temporary destination</span><strong data-testid="temporary-destination">${game.temporaryDestinationId ?? '—'}</strong></div>
+            <div class="state-item"><span>Temporary destination</span><strong data-testid="temporary-destination">${game.temporaryDestinationId ?? '無'}</strong></div>
           </div>
           <p class="pending" data-testid="pending-action">Pending action：${game.pendingAction ? JSON.stringify(game.pendingAction) : '無'}</p>
         </section>
