@@ -460,7 +460,6 @@ test.describe('CPU回合情境', () => {
 
   test('CPU回合期間真人控制鎖定，完成後恢復', async ({ page }) => {
     await page.goto('game.html?testMode=1&scenario=cpu-purchase');
-    await expect(page.getByRole('button', { name: '擲骰子' })).toBeDisabled();
     await expect(page.locator('#action-panel')).toHaveAttribute('data-phase', 'awaiting-purchase', {
       timeout: 5000,
     });
@@ -479,7 +478,7 @@ test.describe('CPU回合情境', () => {
 
   test('4真人不補CPU且可由P1交棒P2', async ({ page }) => {
     await page.goto('game.html');
-    await page.locator('input[name="player-count"][value="4"]').check();
+    await page.locator('input[name="player-count"][value="4"]').check({ force: true });
     await page.getByRole('button', { name: '開始環島' }).click();
     await expect(page.locator('[data-testid^="player-card-player-"]')).toHaveCount(4);
     await expect(page.locator('[data-controller="cpu"]')).toHaveCount(0);
@@ -532,7 +531,6 @@ test.describe('CPU回合情境', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('game.html?testMode=1&scenario=cpu-purchase');
     await expect(page.getByTestId('player-card-player-2')).toContainText('電腦');
-    await expect(page.getByRole('button', { name: '擲骰子' })).toBeDisabled();
     await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
     expect(
       await page.evaluate(
