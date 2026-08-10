@@ -2038,3 +2038,567 @@ dialog {
     transition: none;
   }
 }
+
+/* Phase 5A-2 board artwork: a printed Taiwan travel board, not a dashboard map. */
+.board-frame {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 18% 22%, rgb(255 255 255 / 25%), transparent 18%),
+    linear-gradient(145deg, #d7ebed 0%, #b7d9df 100%);
+}
+
+.board-frame::before {
+  inset: 16px;
+  border: 1px solid rgb(255 253 248 / 52%);
+  border-radius: 22px;
+}
+
+.map-camera-content {
+  overflow: visible;
+}
+
+.taiwan-board-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.taiwan-board-art .sea-decoration {
+  fill: none;
+  stroke: #317181;
+  stroke-linecap: round;
+  stroke-width: 2;
+  opacity: 0.18;
+}
+
+.taiwan-board-art .land-shadow {
+  fill: rgb(36 67 51 / 20%);
+}
+
+.taiwan-board-art .land-base {
+  fill: url('#taiwan-land-gradient');
+  stroke: #466e51;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.taiwan-board-art .terrain-layer {
+  opacity: 0.95;
+}
+
+.taiwan-board-art .western-plain {
+  fill: #e2e6b1;
+  opacity: 0.88;
+}
+
+.taiwan-board-art .plain-rice-shape {
+  fill: none;
+  stroke: #a7b866;
+  stroke-linecap: round;
+  stroke-width: 3;
+  opacity: 0.35;
+}
+
+.taiwan-board-art .mountain-spine {
+  fill: none;
+  stroke: url('#mountain-wash');
+  stroke-linecap: round;
+  stroke-width: 20;
+}
+
+.taiwan-board-art .mountain-spine-soft {
+  stroke: #426a4e;
+  stroke-width: 10;
+  opacity: 0.3;
+}
+
+.taiwan-board-art .contour-line,
+.taiwan-board-art .east-coast-highlight {
+  fill: none;
+  stroke: #315f4b;
+  stroke-linecap: round;
+  stroke-width: 2;
+  opacity: 0.2;
+}
+
+.taiwan-board-art .east-coast-highlight {
+  stroke: #f2efc7;
+  stroke-width: 5;
+  opacity: 0.45;
+}
+
+.taiwan-board-art .land-grain {
+  fill: url('#land-grain');
+  opacity: 0.5;
+}
+
+.taiwan-board-art .coastline {
+  fill: none;
+  stroke: #5e825f;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+  opacity: 0.9;
+}
+
+.taiwan-board-art .route-halo,
+.taiwan-board-art .board-route {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.taiwan-board-art .route-halo {
+  stroke: rgb(255 253 248 / 82%);
+  stroke-width: 13;
+  opacity: 0.7;
+}
+
+.taiwan-board-art .board-route {
+  stroke: #2f704d;
+  stroke-dasharray: 9 9;
+  stroke-width: 4;
+  opacity: 0.72;
+}
+
+.taiwan-board-art .route-inner-line {
+  fill: none;
+  stroke: #d9a83e;
+  stroke-dasharray: 3 10;
+  stroke-linecap: round;
+  stroke-width: 3;
+  opacity: 0.7;
+}
+
+.taiwan-board-art .offshore-lanes {
+  fill: none;
+  stroke: #317181;
+  stroke-dasharray: 4 8;
+  stroke-linecap: round;
+  stroke-width: 2;
+  opacity: 0.42;
+}
+
+.taiwan-board-art .offshore-lanes circle {
+  fill: #d9a83e;
+  stroke: #fffdf8;
+  stroke-width: 3;
+}
+
+.taiwan-board-art .region-labels {
+  fill: #275744;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  opacity: 0.5;
+}
+
+.offshore-panel {
+  position: absolute;
+  z-index: 1;
+  top: 10%;
+  left: 1.3%;
+  width: 17%;
+  height: 80%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgb(49 113 129 / 42%);
+  border-radius: 20px;
+  padding: 13px 8px;
+  color: #235868;
+  background: rgb(222 241 239 / 68%);
+  box-shadow: inset 0 0 0 4px rgb(255 253 248 / 35%);
+  pointer-events: none;
+}
+
+.offshore-panel::before {
+  position: absolute;
+  inset: 7px;
+  border: 1px dashed rgb(49 113 129 / 45%);
+  border-radius: 14px;
+  content: '';
+}
+
+.offshore-panel-heading,
+.offshore-panel p,
+.offshore-islands {
+  position: relative;
+  z-index: 1;
+}
+
+.offshore-panel-heading {
+  display: grid;
+  gap: 3px;
+  text-align: center;
+}
+
+.offshore-panel-heading span {
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.offshore-panel-heading strong {
+  color: #d9a83e;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+}
+
+.offshore-islands {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  color: #317181;
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
+.offshore-islands i {
+  width: 26px;
+  height: 4px;
+  display: block;
+  border-top: 2px dotted #317181;
+}
+
+.offshore-panel p {
+  margin: 0;
+  color: #52645e;
+  font-size: 0.51rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.board-tiles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.board-tile {
+  width: 56px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 2px solid var(--tile-color, #2f704d);
+  border-radius: 50% 50% 46% 46%;
+  padding: 5px 4px;
+  color: var(--tile-color, #2f704d);
+  background: rgb(255 253 248 / 94%);
+  box-shadow:
+    0 5px 0 rgb(255 253 248 / 72%),
+    0 8px 16px rgb(24 54 44 / 16%);
+  transform: translate(-50%, -50%);
+  transition:
+    transform 170ms var(--ease-spring),
+    box-shadow 170ms ease,
+    border-color 170ms ease;
+  pointer-events: auto;
+}
+
+.board-tile::after {
+  position: absolute;
+  right: -4px;
+  bottom: -5px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--tile-color, #2f704d);
+  border-radius: 50%;
+  background: var(--paper-strong);
+  content: '';
+  opacity: 0;
+}
+
+.board-tile:hover,
+.board-tile.is-current-tile {
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 5px rgb(217 168 62 / 22%),
+    0 8px 0 rgb(255 253 248 / 82%),
+    0 13px 24px rgb(24 54 44 / 24%);
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.board-tile.is-current-tile::after {
+  opacity: 1;
+}
+
+.board-tile[data-position='0'] {
+  border-width: 3px;
+  box-shadow:
+    0 0 0 4px rgb(217 168 62 / 24%),
+    0 7px 0 rgb(255 253 248 / 80%),
+    0 12px 20px rgb(24 54 44 / 20%);
+}
+
+.board-tile[data-position='0']::before {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  color: #be5b35;
+  content: 'START';
+  font-size: 0.44rem;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  transform: translateX(-50%);
+}
+
+.tile-production {
+  --tile-color: #2f704d;
+}
+
+.tile-farmers-association {
+  --tile-color: #aa7a18;
+}
+
+.tile-fishers-association {
+  --tile-color: #317181;
+}
+
+.tile-market {
+  --tile-color: #be5b35;
+}
+
+.tile-event {
+  --tile-color: #735c8f;
+}
+
+.tile-transport {
+  --tile-color: #245b61;
+}
+
+.tile-offshore {
+  border-style: dashed;
+  background: rgb(228 243 239 / 96%);
+}
+
+.tile-icon-wrap {
+  width: 21px;
+  height: 21px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.tile-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.tile-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  justify-items: start;
+}
+
+.tile-position {
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  font-size: 0.5rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.tile-name {
+  max-width: 35px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.54rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-token {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--paper-strong);
+  border-radius: 45% 45% 50% 50%;
+  background: var(--token-color, #317181);
+  box-shadow:
+    0 3px 0 rgb(24 54 44 / 18%),
+    0 8px 16px rgb(24 54 44 / 28%);
+}
+
+.player-token.token-1 {
+  --token-color: #317181;
+}
+
+.player-token.token-2 {
+  --token-color: #be5b35;
+}
+
+.player-token.token-3 {
+  --token-color: #735c8f;
+}
+
+.player-token.token-4 {
+  --token-color: #aa7a18;
+}
+
+.player-token span {
+  width: 20px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  color: var(--paper-strong);
+  font-size: inherit;
+}
+
+.player-token .token-icon {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.player-token strong {
+  color: var(--paper-strong);
+  font-size: 0.52rem;
+  line-height: 1;
+}
+
+.player-token.is-current {
+  outline: 3px solid var(--sun);
+  outline-offset: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .board-frame {
+    background: linear-gradient(145deg, #23414a, #24413b);
+  }
+
+  .offshore-panel {
+    color: #cce8e6;
+    background: rgb(30 76 80 / 76%);
+  }
+
+  .offshore-panel p {
+    color: #c2d6cb;
+  }
+
+  .board-tile {
+    background: rgb(31 52 43 / 96%);
+  }
+
+  .tile-name {
+    color: var(--ink);
+  }
+}
+
+@media (max-width: 760px) {
+  .players-rail {
+    flex: 0 0 218px;
+    overflow: hidden;
+  }
+
+  .players-scroll {
+    min-height: 180px;
+  }
+
+  .offshore-panel {
+    top: 9%;
+    left: 1.2%;
+    width: 19%;
+    height: 82%;
+    padding: 10px 5px;
+  }
+
+  .offshore-panel-heading span {
+    font-size: 0.62rem;
+  }
+
+  .offshore-islands {
+    gap: 7px;
+    font-size: 0.5rem;
+  }
+
+  .offshore-islands i {
+    width: 20px;
+  }
+
+  .offshore-panel p {
+    font-size: 0.44rem;
+  }
+
+  .board-tile {
+    width: 48px;
+    min-height: 48px;
+    gap: 2px;
+    padding: 4px 3px;
+  }
+
+  .tile-icon-wrap,
+  .tile-icon {
+    width: 17px;
+    height: 17px;
+  }
+
+  .tile-name {
+    max-width: 28px;
+    font-size: 0.46rem;
+  }
+
+  .tile-position {
+    font-size: 0.44rem;
+  }
+
+  .player-token {
+    width: 31px;
+    height: 31px;
+  }
+
+  .player-token span,
+  .player-token .token-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .player-token strong {
+    font-size: 0.46rem;
+  }
+
+  .taiwan-board-art .region-labels {
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .board-tile.is-current-tile::after {
+    animation: current-node-pulse 1.7s ease-in-out infinite;
+  }
+}
+
+@keyframes current-node-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-tile.is-current-tile::after {
+    animation: none;
+    opacity: 1;
+  }
+}

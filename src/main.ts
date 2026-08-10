@@ -6,6 +6,7 @@ import { COUNTIES } from './data/counties';
 import { MARKET_CARDS } from './data/marketCards';
 import { PRODUCT_CATEGORY_NAMES, PRODUCTS } from './data/products';
 import { validateGameData } from './game/dataValidation';
+import { renderHeroTaiwanArtwork } from './ui/boardArtwork';
 
 validateGameData();
 
@@ -31,7 +32,7 @@ app.innerHTML = `
   <main id="top">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy"><p class="eyebrow">Phase 4 CPU 開發預覽</p><h1 id="hero-title">《臺灣農產王》<span>環島產地爭霸戰</span></h1><p class="hero-subtitle">走臺灣，認產地，買農產，拚產值。</p><div class="hero-actions"><a class="primary-link" href="./game.html">開始遊戲</a><button type="button" data-open="rules-dialog">看規則</button></div></div>
-      <div class="hero-board" aria-label="臺灣環島桌遊棋盤預覽"><div class="hero-island"><span class="hero-route"></span><strong>12<small>輪</small></strong><i class="marker marker-north">北</i><i class="marker marker-west">西</i><i class="marker marker-south">南</i><i class="marker marker-east">東</i></div><div class="offshore-set"><span>澎湖</span><span>金門</span><span>馬祖</span></div></div>
+      <div class="hero-board" aria-label="臺灣環島桌遊棋盤預覽"><div class="hero-island">${renderHeroTaiwanArtwork()}<span class="hero-route-badge"><strong>12<small>輪</small></strong></span><i class="marker marker-north">北</i><i class="marker marker-west">西</i><i class="marker marker-south">南</i><i class="marker marker-east">東</i></div><div class="offshore-set" aria-label="離島旅行"><span>澎湖</span><span>金門</span><span>馬祖</span></div></div>
     </section>
     <section class="facts" aria-label="遊戲內容規模"><article><strong>${BOARD_TILES.length}</strong><span>格臺灣棋盤</span></article><article><strong>${PRODUCTS.length}</strong><span>項農漁產品</span></article><article><strong>${MARKET_CARDS.length}</strong><span>張市場卡</span></article><article><strong>${COLLECTION_GOALS.length}</strong><span>項收藏任務</span></article></section>
     <section class="how-to-play" aria-labelledby="play-title"><h2 id="play-title">一趟看得懂，也玩得完的環島</h2><div class="play-sequence"><article><strong>擲骰前進</strong><p>沿臺灣本島 0 至 26 格逐站移動。</p></article><article><strong>採購與出售</strong><p>在產地、農漁會與市場做一次選擇。</p></article><article><strong>完成收藏</strong><p>公開追蹤 12 項任務，12 輪後結算。</p></article></div></section>

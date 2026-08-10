@@ -1037,3 +1037,139 @@ dialog {
     transition: none;
   }
 }
+
+/* Phase 5A-2 homepage art shares the printed-map language with the game board. */
+.hero-island {
+  width: min(68%, 360px);
+  height: 500px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.hero-taiwan-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 22px 28px rgb(36 67 51 / 18%));
+  pointer-events: none;
+}
+
+.hero-land-shadow {
+  fill: rgb(36 67 51 / 20%);
+}
+
+.hero-land-base {
+  fill: url('#hero-land-gradient');
+  stroke: #466e51;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.hero-terrain .hero-plain {
+  fill: #e3e6b1;
+  opacity: 0.88;
+}
+
+.hero-terrain .hero-mountain {
+  fill: none;
+  stroke: #426a4e;
+  stroke-linecap: round;
+  stroke-width: 15;
+  opacity: 0.38;
+}
+
+.hero-terrain .hero-contours {
+  fill: none;
+  stroke: #315f4b;
+  stroke-linecap: round;
+  stroke-width: 2;
+  opacity: 0.24;
+}
+
+.hero-coastline {
+  fill: none;
+  stroke: #5e825f;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.hero-route-path {
+  fill: none;
+  stroke: #2f704d;
+  stroke-dasharray: 8 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  opacity: 0.72;
+}
+
+.hero-map-label {
+  fill: #275744;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0.26em;
+  opacity: 0.52;
+}
+
+.hero-route-badge {
+  position: absolute;
+  top: 42%;
+  left: 32%;
+  z-index: 2;
+  width: 32%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 5px solid rgb(255 253 248 / 82%);
+  border-radius: 50%;
+  color: var(--surface);
+  background: var(--field-dark);
+  box-shadow: 0 8px 0 rgb(217 168 62 / 72%);
+}
+
+.hero-route-badge strong {
+  display: grid;
+  place-items: center;
+  font-size: 3.2rem;
+  line-height: 0.85;
+}
+
+.hero-route-badge small {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.25em;
+}
+
+.hero-island .marker {
+  z-index: 3;
+}
+
+.hero-route,
+.hero-island > strong {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+
+  .hero-board {
+    min-height: 430px;
+  }
+
+  .hero-island {
+    width: min(62%, 310px);
+    height: 420px;
+  }
+
+  .hero-route-badge strong {
+    font-size: 2.5rem;
+  }
+}
