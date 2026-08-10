@@ -303,9 +303,8 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(page.locator('.board-tile')).toHaveCount(30);
   await expect(page.locator('.board-tile[data-position="27"]')).toBeVisible();
   await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-settled', 'true');
-  await expect(page.locator('.taiwan-board-art')).toBeVisible();
-  await expect(page.locator('.taiwan-board-art .terrain-layer')).toBeVisible();
-  await expect(page.locator('.taiwan-board-art .route-layer')).toBeVisible();
+  await expect(page.locator('.taiwan-board-art')).toHaveCount(0);
+  await expect(page.locator('.offshore-panel')).toHaveCount(0);
   const boardArtworkImage = page.getByTestId('board-artwork-image');
   await expect(boardArtworkImage).toBeVisible();
   await expect
@@ -318,8 +317,38 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
       { timeout: 3000 },
     )
     .toBe(true);
-  await expect(page.locator('.offshore-panel')).toBeVisible();
   await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
+  const defaultTileAppearance = await page
+    .locator('.board-tile[data-position="10"]')
+    .evaluate((tile) => {
+      const element = tile as HTMLElement;
+      const icon = element.querySelector<HTMLElement>('.tile-icon-wrap');
+      const copy = element.querySelector<HTMLElement>('.tile-copy');
+      const style = getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        border: style.borderColor,
+        iconOpacity: icon ? getComputedStyle(icon).opacity : '',
+        iconVisibility: icon ? getComputedStyle(icon).visibility : '',
+        copyOpacity: copy ? getComputedStyle(copy).opacity : '',
+        copyVisibility: copy ? getComputedStyle(copy).visibility : '',
+      };
+    });
+  expect(defaultTileAppearance.background).toBe('rgba(0, 0, 0, 0)');
+  expect(defaultTileAppearance.border).toBe('rgba(0, 0, 0, 0)');
+  expect(defaultTileAppearance.iconOpacity).toBe('0');
+  expect(defaultTileAppearance.iconVisibility).toBe('hidden');
+  expect(defaultTileAppearance.copyOpacity).toBe('0');
+  expect(defaultTileAppearance.copyVisibility).toBe('hidden');
+  const interactionTile = page.locator('.board-tile[data-position="10"]');
+  await interactionTile.hover();
+  await expect(interactionTile.locator('.tile-icon-wrap')).toHaveCSS('visibility', 'visible');
+  await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
+  await page.mouse.move(2, 2);
+  await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'hidden');
+  await interactionTile.focus();
+  await expect(interactionTile).toBeFocused();
+  await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
   await expect(page.locator('.play-layout[data-layout="production"]')).toBeVisible();
   await expect(page.locator('.rail-heading')).toHaveCount(2);
   await expect(page.getByTestId('action-dock')).toBeVisible();
@@ -328,7 +357,9 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
       () =>
         page.evaluate(() => {
           const viewport = document.querySelector('.map-camera-viewport')?.getBoundingClientRect();
-          const artwork = document.querySelector('.taiwan-board-art')?.getBoundingClientRect();
+          const artwork = document
+            .querySelector<HTMLImageElement>('[data-testid="board-artwork-image"]')
+            ?.getBoundingClientRect();
           return (
             Boolean(viewport && artwork) &&
             artwork!.left >= viewport!.left - 5 &&
@@ -342,7 +373,6 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
     .toBe(true);
   const boardGeometry = await page.evaluate(() => {
     const viewport = document.querySelector('.map-camera-viewport')?.getBoundingClientRect();
-    const artwork = document.querySelector('.taiwan-board-art')?.getBoundingClientRect();
     const artworkImage = document
       .querySelector<HTMLImageElement>('[data-testid="board-artwork-image"]')
       ?.getBoundingClientRect();
@@ -377,12 +407,6 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
     });
     return {
       positions,
-      artworkInsideViewport:
-        Boolean(viewport && artwork) &&
-        artwork!.left >= viewport!.left - 5 &&
-        artwork!.right <= viewport!.right + 5 &&
-        artwork!.top >= viewport!.top - 5 &&
-        artwork!.bottom <= viewport!.bottom + 5,
       minimumDistance,
       tokenVisible: Boolean(tokenRect && tokenRect.width > 0 && tokenRect.height > 0),
       artworkImageInsideViewport:
@@ -404,7 +428,6 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
     };
   });
   expect(boardGeometry.positions).toEqual(Array.from({ length: 30 }, (_, position) => position));
-  expect(boardGeometry.artworkInsideViewport).toBe(true);
   expect(boardGeometry.minimumDistance).toBeGreaterThan(14);
   expect(boardGeometry.tokenVisible).toBe(true);
   expect(boardGeometry.artworkImageInsideViewport).toBe(true);
@@ -623,9 +646,8 @@ test('手機390×844可完成一回合並操作規則與收藏', async ({ page }
   await page.goto('game.html?testMode=1&scenario=purchase');
   expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
   await expect(page.locator('.board-frame')).toBeVisible();
-  await expect(page.locator('.taiwan-board-art')).toBeVisible();
-  await expect(page.locator('.taiwan-board-art .terrain-layer')).toBeVisible();
-  await expect(page.locator('.taiwan-board-art .route-layer')).toBeVisible();
+  await expect(page.locator('.taiwan-board-art')).toHaveCount(0);
+  await expect(page.locator('.offshore-panel')).toHaveCount(0);
   const mobileArtworkImage = page.getByTestId('board-artwork-image');
   await expect(mobileArtworkImage).toBeVisible();
   await expect
@@ -638,7 +660,6 @@ test('手機390×844可完成一回合並操作規則與收藏', async ({ page }
       { timeout: 3000 },
     )
     .toBe(true);
-  await expect(page.locator('.offshore-panel')).toBeVisible();
   await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
   await expect(page.locator('.board-tile[data-position="27"]')).toBeVisible();
   await expect(page.locator('.board-tile[data-position="28"]')).toBeVisible();

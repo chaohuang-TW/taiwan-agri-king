@@ -4,7 +4,6 @@ import {
   BOARD_COORDINATES,
   BOARD_ARTWORK_ASSET_URL,
   renderPlayerTokenIcon,
-  renderTaiwanBoardArtwork,
   renderTileIcon,
 } from './boardArtwork';
 
@@ -22,13 +21,7 @@ export function createBoardView(host: HTMLElement, initialState: GameState): Boa
       <div class="map-camera">
         <div class="map-camera-viewport" data-testid="board-camera">
           <div class="map-camera-content">
-            <img class="board-artwork-image" data-testid="board-artwork-image" src="${BOARD_ARTWORK_ASSET_URL}" alt="臺灣島嶼冒險棋盤地圖" draggable="false" />
-            ${renderTaiwanBoardArtwork()}
-            <section class="offshore-panel" aria-label="離島旅行區">
-              <div class="offshore-panel-heading"><span>離島旅行</span><strong>交通</strong></div>
-              <div class="offshore-islands" aria-hidden="true"><span>馬祖</span><i></i><span>金門</span><i></i><span>澎湖</span></div>
-              <p>船票連起三座島嶼</p>
-            </section>
+            <img class="board-artwork-image" data-testid="board-artwork-image" src="${BOARD_ARTWORK_ASSET_URL}" alt="" aria-hidden="true" draggable="false" />
             <div class="board-tiles">
               ${BOARD_TILES.map((tile) => {
                 const coordinate = BOARD_COORDINATES[tile.position]!;
@@ -86,10 +79,10 @@ export function createBoardView(host: HTMLElement, initialState: GameState): Boa
                   [13, 11],
                 ]
               : [
-                  [-12, -12],
-                  [12, -12],
-                  [-12, 12],
-                  [12, 12],
+                  [-16, -16],
+                  [16, -16],
+                  [-16, 16],
+                  [16, 16],
                 ];
       const [offsetX, offsetY] = offsets[peerIndex] ?? [0, 0];
       token.style.setProperty('--token-x', `${coordinate[0]}%`);

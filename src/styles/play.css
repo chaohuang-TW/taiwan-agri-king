@@ -3441,3 +3441,172 @@ body {
     height: 30px;
   }
 }
+
+/* Phase 5A-5: the supplied illustration is the sole game-board artwork.
+   DOM buttons remain an accessible interaction layer, not a second set of
+   printed board nodes. */
+.board-frame {
+  background: transparent;
+}
+
+.board-artwork-image {
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 1;
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+.board-tiles {
+  z-index: 2;
+}
+
+.board-tile {
+  width: 52px;
+  height: 52px;
+  min-height: 52px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  color: transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 170ms var(--ease-spring),
+    box-shadow 170ms ease,
+    background-color 170ms ease;
+}
+
+.board-tile::before,
+.board-tile::after {
+  content: none;
+}
+
+.board-tile .tile-icon-wrap,
+.board-tile .tile-copy {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 140ms ease,
+    visibility 140ms ease;
+}
+
+.board-tile:hover,
+.board-tile:focus,
+.board-tile:focus-visible,
+.board-tile.is-current-tile {
+  z-index: 4;
+  border: 2px solid var(--color-accent);
+  color: var(--tile-color, #2f704d);
+  background: rgb(255 253 248 / 12%);
+  box-shadow:
+    0 0 0 4px rgb(217 168 62 / 30%),
+    0 0 16px rgb(217 168 62 / 26%);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.board-tile:hover .tile-icon-wrap,
+.board-tile:hover .tile-copy,
+.board-tile:focus .tile-icon-wrap,
+.board-tile:focus .tile-copy,
+.board-tile:focus-visible .tile-icon-wrap,
+.board-tile:focus-visible .tile-copy,
+.board-tile.is-current-tile .tile-icon-wrap,
+.board-tile.is-current-tile .tile-copy {
+  opacity: 1;
+  visibility: visible;
+}
+
+.board-tile .tile-icon-wrap {
+  width: 19px;
+  height: 19px;
+}
+
+.board-tile .tile-icon {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 1px rgb(255 251 224 / 70%));
+}
+
+.board-tile .tile-copy {
+  bottom: -18px;
+  justify-items: center;
+  transform: translateX(-50%);
+}
+
+.board-tile .tile-position,
+.board-tile .tile-name {
+  color: #fff8dc;
+  text-align: center;
+  text-shadow: 0 1px 2px rgb(18 44 39 / 90%);
+}
+
+.board-tile .tile-position {
+  font-size: 0.5rem;
+}
+
+.board-tile .tile-name {
+  max-width: 64px;
+  font-size: 0.48rem;
+}
+
+.board-tile[data-position='0'].is-current-tile::before {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  color: #fff4cf;
+  content: 'START';
+  font-size: 0.44rem;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  text-shadow: 0 1px 2px rgb(18 44 39 / 80%);
+  transform: translateX(-50%);
+}
+
+.player-tokens {
+  z-index: 3;
+}
+
+.player-token {
+  width: 30px;
+  height: 30px;
+  box-shadow:
+    0 2px 0 rgb(24 54 44 / 18%),
+    0 5px 10px rgb(24 54 44 / 28%);
+}
+
+.player-token.is-current {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .board-tile {
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+  }
+
+  .board-tile .tile-name {
+    max-width: 52px;
+    font-size: 0.43rem;
+  }
+
+  .player-token {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-tile,
+  .board-tile .tile-icon-wrap,
+  .board-tile .tile-copy {
+    transition: none;
+  }
+}
