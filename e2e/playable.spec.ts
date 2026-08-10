@@ -350,7 +350,8 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(interactionTile).toBeFocused();
   await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
   await expect(page.locator('.play-layout[data-layout="production"]')).toBeVisible();
-  await expect(page.locator('.rail-heading')).toHaveCount(2);
+  await expect(page.getByTestId('players-hud')).toBeVisible();
+  await expect(page.getByTestId('market-hud')).toBeVisible();
   await expect(page.getByTestId('action-dock')).toBeVisible();
   await expect
     .poll(
@@ -437,6 +438,7 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
     const shellGeometry = await page.evaluate(() => {
       const rect = (selector: string) =>
         document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+      const stage = rect('.game-stage');
       const players = rect('.players-rail');
       const board = rect('.board-frame');
       const insights = rect('.insight-rail');
@@ -444,24 +446,35 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
       return {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         boardWidth: board?.width ?? 0,
-        boardInsideRails: Boolean(
-          players &&
-          board &&
-          insights &&
-          players.right <= board.left &&
-          board.right <= insights.left,
-        ),
-        dockSpansLayout: Boolean(
-          dock && dock.left <= (players?.left ?? 0) + 1 && dock.right >= (insights?.right ?? 0) - 1,
+        boardRatio: stage && board ? board.width / stage.width : 0,
+        playersFloatOverBoard: Boolean(players && board && players.left >= board.left),
+        marketFloatsOverBoard: Boolean(insights && board && insights.right <= board.right),
+        playersHeightRatio: stage && players ? players.height / stage.height : 1,
+        marketHeightRatio: stage && insights ? insights.height / stage.height : 1,
+        dockHeight: dock?.height ?? 0,
+        dockCentered: Boolean(
+          stage &&
+          dock &&
+          Math.abs(dock.left + dock.width / 2 - (stage.left + stage.width / 2)) < 2,
         ),
       };
     });
     expect(shellGeometry.overflow).toBe(0);
     expect(shellGeometry.boardWidth).toBeGreaterThan(650);
-    expect(shellGeometry.boardInsideRails).toBe(true);
-    expect(shellGeometry.dockSpansLayout).toBe(true);
+    expect(shellGeometry.boardRatio).toBeGreaterThanOrEqual(0.65);
+    expect(shellGeometry.playersFloatOverBoard).toBe(true);
+    expect(shellGeometry.marketFloatsOverBoard).toBe(true);
+    expect(shellGeometry.playersHeightRatio).toBeLessThan(0.65);
+    expect(shellGeometry.marketHeightRatio).toBeLessThan(0.65);
+    expect(shellGeometry.dockHeight).toBeLessThanOrEqual(120);
+    expect(shellGeometry.dockCentered).toBe(true);
   }
-  await expect(page.getByTestId('market-card')).toBeVisible();
+  if (viewportWidth >= 900) {
+    await expect(page.getByTestId('market-card')).toBeVisible();
+  } else {
+    await expect(page.getByTestId('market-hud')).not.toHaveAttribute('open', '');
+    await expect(page.getByTestId('market-card')).not.toBeVisible();
+  }
   await expect(page.getByText('收藏任務', { exact: false })).toBeVisible();
   await expect(page.getByTestId('funds-player-1')).toHaveText('15');
   await expect(page.locator('[data-testid^="player-card-player-"]')).toHaveCount(4);
@@ -471,7 +484,13 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(page.locator('.controller-label')).toHaveCount(4);
   await expect(page.locator('.action-panel')).toBeVisible();
   await expect(page.locator('.action-panel .primary-action')).toBeVisible();
+  await expect(page.getByTestId('collections-drawer')).not.toHaveAttribute('open', '');
+  await expect(page.locator('.collections-list')).not.toBeVisible();
+  const boardBeforeDrawer = await page.locator('.board-frame').boundingBox();
+  await page.getByText('收藏任務', { exact: false }).click();
   await expect(page.locator('.collections-list')).toBeVisible();
+  const boardAfterDrawer = await page.locator('.board-frame').boundingBox();
+  expect(boardAfterDrawer).toEqual(boardBeforeDrawer);
   await expectPageHealthy(page, diagnostics);
 });
 
@@ -666,13 +685,20 @@ test('手機390×844可完成一回合並操作規則與收藏', async ({ page }
   await expect(page.locator('.board-tile[data-position="29"]')).toBeVisible();
   await expect(page.locator('.play-layout[data-layout="production"]')).toBeVisible();
   await expect(page.getByTestId('action-dock')).toBeVisible();
+  await expect(page.getByTestId('market-hud')).not.toHaveAttribute('open', '');
+  await expect(page.getByTestId('market-card')).not.toBeVisible();
+  await page.getByTestId('market-hud').locator('summary').click();
   await expect(page.getByTestId('market-card')).toBeVisible();
-  await expect(page.locator('.collections-list')).toBeVisible();
+  await page.getByTestId('market-hud').locator('summary').click();
+  await expect(page.getByTestId('market-card')).not.toBeVisible();
+  await expect(page.locator('.collections-list')).not.toBeVisible();
   await page.getByRole('button', { name: '規則' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('button', { name: '關閉遊戲規則' }).click();
   await page.getByText('收藏任務', { exact: false }).click();
+  await expect(page.locator('.collections-list')).toBeVisible();
   await page.getByText('收藏任務', { exact: false }).click();
+  await expect(page.locator('.collections-list')).not.toBeVisible();
   await page.getByRole('button', { name: '擲骰子' }).click();
   await waitForAction(page, '產地採購');
   const buttonHeight = await page
