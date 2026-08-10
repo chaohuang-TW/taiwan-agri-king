@@ -307,6 +307,12 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(page.getByTestId('funds-player-1')).toHaveText('15');
   await expect(page.locator('[data-testid^="player-card-player-"]')).toHaveCount(4);
   await expect(page.getByTestId('player-card-player-3')).toContainText('電腦');
+  await expect(page.locator('.player-status.is-current')).toHaveCount(1);
+  await expect(page.getByTestId('player-card-player-1')).toHaveClass(/is-current/);
+  await expect(page.locator('.controller-label')).toHaveCount(4);
+  await expect(page.locator('.action-panel')).toBeVisible();
+  await expect(page.locator('.action-panel .primary-action')).toBeVisible();
+  await expect(page.locator('.collections-list')).toBeVisible();
   await expectPageHealthy(page, diagnostics);
 });
 
@@ -481,6 +487,8 @@ test('手機390×844可完成一回合並操作規則與收藏', async ({ page }
   await page.goto('game.html?testMode=1&scenario=purchase');
   expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
   await expect(page.locator('.board-frame')).toBeVisible();
+  await expect(page.getByTestId('market-card')).toBeVisible();
+  await expect(page.locator('.collections-list')).toBeVisible();
   await page.getByRole('button', { name: '規則' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('button', { name: '關閉遊戲規則' }).click();
