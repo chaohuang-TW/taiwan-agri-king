@@ -2,6 +2,7 @@ import { BOARD_TILES } from '../data/board';
 import type { GameState } from '../game/types';
 import {
   BOARD_COORDINATES,
+  BOARD_ARTWORK_ASSET_URL,
   renderPlayerTokenIcon,
   renderTaiwanBoardArtwork,
   renderTileIcon,
@@ -21,6 +22,7 @@ export function createBoardView(host: HTMLElement, initialState: GameState): Boa
       <div class="map-camera">
         <div class="map-camera-viewport" data-testid="board-camera">
           <div class="map-camera-content">
+            <img class="board-artwork-image" data-testid="board-artwork-image" src="${BOARD_ARTWORK_ASSET_URL}" alt="臺灣島嶼冒險棋盤地圖" draggable="false" />
             ${renderTaiwanBoardArtwork()}
             <section class="offshore-panel" aria-label="離島旅行區">
               <div class="offshore-panel-heading"><span>離島旅行</span><strong>交通</strong></div>

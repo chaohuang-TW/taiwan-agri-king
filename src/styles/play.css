@@ -3221,3 +3221,223 @@ body {
     font-size: 0.82rem;
   }
 }
+
+/* Phase 5A-4 formal artwork integration: keep the PNG as scenery and the
+   existing SVG/DOM layers as the live game surface. */
+.map-camera-content {
+  width: 960px;
+  height: 720px;
+}
+
+.board-artwork-image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The inline map remains in the DOM for route semantics and accessibility
+   contracts, but the supplied illustrated board is the primary artwork. */
+.taiwan-board-art {
+  z-index: 1;
+  opacity: 0.025;
+}
+
+.taiwan-board-art .route-layer,
+.taiwan-board-art .offshore-lanes {
+  opacity: 0.08;
+}
+
+.map-camera-viewport[data-camera-state='focus-player'] .map-camera-content,
+.map-camera-viewport[data-camera-state='following'] .map-camera-content {
+  transition-duration: 0ms;
+}
+
+.offshore-panel {
+  top: 38%;
+  left: 7%;
+  width: 15%;
+  height: 42%;
+  border-color: rgb(255 248 220 / 48%);
+  border-radius: 16px;
+  padding: 10px 6px;
+  color: #f5ebc9;
+  background: rgb(41 99 104 / 13%);
+  box-shadow: inset 0 0 0 2px rgb(255 248 220 / 14%);
+  text-shadow: 0 1px 2px rgb(16 49 50 / 70%);
+}
+
+.offshore-panel::before {
+  inset: 5px;
+  border-color: rgb(255 248 220 / 60%);
+  border-radius: 12px;
+}
+
+.offshore-panel-heading span,
+.offshore-panel-heading strong,
+.offshore-islands,
+.offshore-panel p {
+  color: inherit;
+}
+
+.offshore-panel-heading span {
+  font-size: 0.58rem;
+}
+
+.offshore-panel-heading strong,
+.offshore-panel p {
+  opacity: 0.8;
+}
+
+.offshore-islands {
+  gap: 5px;
+  font-size: 0.5rem;
+}
+
+.offshore-islands i {
+  width: 18px;
+  border-color: rgb(255 248 220 / 60%);
+}
+
+.offshore-panel p {
+  font-size: 0.44rem;
+}
+
+.board-tile {
+  width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgb(255 250 222 / 72%);
+  border-radius: 50%;
+  padding: 0;
+  color: var(--tile-color, #214f42);
+  background: rgb(255 248 211 / 22%);
+  box-shadow:
+    inset 0 0 0 1px rgb(53 79 56 / 30%),
+    0 3px 8px rgb(22 50 42 / 20%);
+  backdrop-filter: blur(1px);
+}
+
+.board-tile::after {
+  right: -5px;
+  bottom: -5px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--tile-color, #214f42);
+  background: rgb(255 247 210 / 82%);
+}
+
+.board-tile:hover,
+.board-tile.is-current-tile {
+  border-color: var(--color-accent);
+  background: rgb(255 249 218 / 68%);
+  box-shadow:
+    0 0 0 4px rgb(217 168 62 / 24%),
+    0 7px 14px rgb(24 54 44 / 28%);
+  transform: translate(-50%, -50%) scale(1.14);
+}
+
+.board-tile[data-position='0'] {
+  border-width: 3px;
+  background: rgb(255 249 218 / 58%);
+}
+
+.board-tile[data-position='0']::before {
+  top: -13px;
+  color: #fff4cf;
+  text-shadow: 0 1px 2px rgb(18 44 39 / 80%);
+}
+
+.tile-offshore {
+  border-style: solid;
+  background: rgb(255 248 211 / 34%);
+}
+
+.tile-icon-wrap {
+  width: 20px;
+  height: 20px;
+}
+
+.tile-icon {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 1px rgb(255 251 224 / 55%));
+}
+
+.tile-copy {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  display: grid;
+  justify-items: center;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 140ms ease;
+  pointer-events: none;
+}
+
+.board-tile:hover .tile-copy,
+.board-tile.is-current-tile .tile-copy {
+  opacity: 1;
+}
+
+.tile-position {
+  color: #fff8dc;
+  font-size: 0.5rem;
+  text-shadow: 0 1px 2px rgb(18 44 39 / 80%);
+}
+
+.tile-name {
+  max-width: 58px;
+  overflow: hidden;
+  color: #fff8dc;
+  font-size: 0.48rem;
+  line-height: 1.1;
+  text-shadow: 0 1px 2px rgb(18 44 39 / 90%);
+}
+
+.player-token {
+  width: 34px;
+  height: 34px;
+  border-radius: 45% 45% 50% 50%;
+  box-shadow:
+    0 3px 0 rgb(24 54 44 / 20%),
+    0 8px 14px rgb(24 54 44 / 34%);
+  transition-duration: 0ms;
+}
+
+@media (max-width: 560px) {
+  .offshore-panel {
+    top: 38%;
+    left: 7%;
+    width: 15%;
+    height: 42%;
+  }
+
+  .board-tile {
+    width: 38px;
+    min-height: 38px;
+  }
+
+  .tile-icon-wrap,
+  .tile-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .tile-name {
+    max-width: 48px;
+    font-size: 0.43rem;
+  }
+
+  .player-token {
+    width: 30px;
+    height: 30px;
+  }
+}

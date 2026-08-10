@@ -89,6 +89,12 @@ function scheduleUiDelay(ms: number): Promise<void> {
   });
 }
 
+function waitForCameraRender(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
 function cleanupUiLifecycle(): void {
   lifecycleGeneration += 1;
   timers.forEach((timer) => window.clearTimeout(timer));
@@ -422,7 +428,13 @@ async function animateMovement(generation: number): Promise<boolean> {
     await diceAnimation.show(diceResult, player.id, player.name);
     if (generation !== lifecycleGeneration) return false;
     const token = board?.getToken(player.id);
-    if (token) camera?.focus(token, 'focus-player', player.id, player.position, 0);
+    if (token) {
+      camera?.focus(token, 'focus-player', player.id, player.position, 0);
+      // Let the first focus transform commit before the first movement sample
+      // is measured.  This keeps the live token and Camera in lockstep when a
+      // high-resolution artwork layer changes the presentation coordinates.
+      await waitForCameraRender();
+    }
     while (state?.phase === 'moving') {
       state = advanceMovementStep(state, gameRandom());
       board?.update(state);

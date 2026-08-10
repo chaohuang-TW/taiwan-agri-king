@@ -306,6 +306,18 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(page.locator('.taiwan-board-art')).toBeVisible();
   await expect(page.locator('.taiwan-board-art .terrain-layer')).toBeVisible();
   await expect(page.locator('.taiwan-board-art .route-layer')).toBeVisible();
+  const boardArtworkImage = page.getByTestId('board-artwork-image');
+  await expect(boardArtworkImage).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        boardArtworkImage.evaluate((element) => {
+          const image = element as HTMLImageElement;
+          return image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+        }),
+      { timeout: 3000 },
+    )
+    .toBe(true);
   await expect(page.locator('.offshore-panel')).toBeVisible();
   await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
   await expect(page.locator('.play-layout[data-layout="production"]')).toBeVisible();
@@ -331,6 +343,9 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   const boardGeometry = await page.evaluate(() => {
     const viewport = document.querySelector('.map-camera-viewport')?.getBoundingClientRect();
     const artwork = document.querySelector('.taiwan-board-art')?.getBoundingClientRect();
+    const artworkImage = document
+      .querySelector<HTMLImageElement>('[data-testid="board-artwork-image"]')
+      ?.getBoundingClientRect();
     const positions = Array.from(document.querySelectorAll<HTMLElement>('.board-tile')).map(
       (tile) => Number(tile.dataset.position),
     );
@@ -354,6 +369,12 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
     }
     const token = document.querySelector<HTMLElement>('[data-testid="player-token-player-1"]');
     const tokenRect = token?.getBoundingClientRect();
+    const offshoreCenters = Array.from(
+      document.querySelectorAll<HTMLElement>('.board-tile.tile-offshore'),
+    ).map((tile) => {
+      const rect = tile.getBoundingClientRect();
+      return [rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
+    });
     return {
       positions,
       artworkInsideViewport:
@@ -364,12 +385,30 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
         artwork!.bottom <= viewport!.bottom + 5,
       minimumDistance,
       tokenVisible: Boolean(tokenRect && tokenRect.width > 0 && tokenRect.height > 0),
+      artworkImageInsideViewport:
+        Boolean(viewport && artworkImage) &&
+        artworkImage!.left >= viewport!.left - 5 &&
+        artworkImage!.right <= viewport!.right + 5 &&
+        artworkImage!.top >= viewport!.top - 5 &&
+        artworkImage!.bottom <= viewport!.bottom + 5,
+      offshoreAligned:
+        Boolean(artworkImage) &&
+        offshoreCenters.length === 3 &&
+        offshoreCenters.every(
+          ([x, y]) =>
+            x >= artworkImage!.left &&
+            x <= artworkImage!.left + artworkImage!.width * 0.3 &&
+            y >= artworkImage!.top + artworkImage!.height * 0.35 &&
+            y <= artworkImage!.bottom,
+        ),
     };
   });
   expect(boardGeometry.positions).toEqual(Array.from({ length: 30 }, (_, position) => position));
   expect(boardGeometry.artworkInsideViewport).toBe(true);
   expect(boardGeometry.minimumDistance).toBeGreaterThan(14);
   expect(boardGeometry.tokenVisible).toBe(true);
+  expect(boardGeometry.artworkImageInsideViewport).toBe(true);
+  expect(boardGeometry.offshoreAligned).toBe(true);
   const viewportWidth = page.viewportSize()?.width ?? 0;
   if (viewportWidth >= 900) {
     const shellGeometry = await page.evaluate(() => {
@@ -587,6 +626,18 @@ test('手機390×844可完成一回合並操作規則與收藏', async ({ page }
   await expect(page.locator('.taiwan-board-art')).toBeVisible();
   await expect(page.locator('.taiwan-board-art .terrain-layer')).toBeVisible();
   await expect(page.locator('.taiwan-board-art .route-layer')).toBeVisible();
+  const mobileArtworkImage = page.getByTestId('board-artwork-image');
+  await expect(mobileArtworkImage).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        mobileArtworkImage.evaluate((element) => {
+          const image = element as HTMLImageElement;
+          return image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+        }),
+      { timeout: 3000 },
+    )
+    .toBe(true);
   await expect(page.locator('.offshore-panel')).toBeVisible();
   await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
   await expect(page.locator('.board-tile[data-position="27"]')).toBeVisible();
