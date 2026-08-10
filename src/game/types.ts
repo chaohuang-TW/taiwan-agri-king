@@ -98,12 +98,16 @@ export type GamePhase =
   | 'awaiting-turn-end'
   | 'game-over';
 
+export type PlayerController = 'human' | 'cpu';
+
 export interface PlayerState {
   id: string;
   name: string;
   position: number;
   funds: number;
   productIds: string[];
+  /** Optional for backwards-compatible saved states; omitted means human. */
+  controller?: PlayerController;
 }
 
 export interface MovementPresentation {

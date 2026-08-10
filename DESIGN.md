@@ -88,9 +88,9 @@ UI延遲集中由 `scheduleUiDelay()` 管理，restart與離頁會清除timer、
 
 互動目標至少44px，主要操作固定在拇指可及範圍。地圖內容可縮放或平移，但頁面本身不得水平溢位。支援 `prefers-reduced-motion`、鍵盤焦點與系統明暗色。
 
-## 未來CPU策略
+## CPU控制器與平衡
 
-CPU只讀取公開遊戲狀態與可用動作，透過可測試的評分函式選擇採購、移動或任務方向。難度差異來自評估深度與權重，不透過偷看牌庫或修改亂數。
+`src/cpu/` 的純函式只讀取公開遊戲狀態與合法 `PendingAction`，以收藏進度、產值／成本、資金保留、新縣市／地區／類別與市場溢價產生可解釋決策。實際購買、出售、交通與略過仍由核心 engine action 執行；CPU不讀取 `marketDeck.drawPile`、不預判事件，也不修改亂數。真人與CPU共用 `runAnimatedMovement()`、棋子token與BoardCamera，UI延遲不進入GameState。2,000局固定seed結果記錄於 [BALANCE_REPORT.md](./BALANCE_REPORT.md)。
 
 ## ID與資料版本
 

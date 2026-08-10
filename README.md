@@ -2,11 +2,11 @@
 
 《臺灣農產王》是以臺灣農漁產地為主題的兒童與家庭網頁桌遊。玩家扮演農產採購王，沿環島棋盤認識產地、採購產品、觀察市場，並在12輪後以最高總產值取勝。
 
-> 目前為 Phase 3 candidate。核心規則與正式臺灣地圖介面已完成，等待人工驗收與PR合併。
+> 目前為 Phase 4 candidate。CPU玩家、可重現策略與2,000局平衡驗證已完成，等待人工驗收與PR審查。
 
 ## 遊戲概念與目標
 
-核心體驗是「走臺灣、認產地、買農產、看行情、湊收藏、拚最高總產值」。核心引擎支援1至4名真人；Phase 2不包含CPU。完整規則見 [GAME_RULES.md](./GAME_RULES.md)。
+核心體驗是「走臺灣、認產地、買農產、看行情、湊收藏、拚最高總產值」。可選擇1至4名真人，不足四席由電腦依公開資訊補位。完整規則見 [GAME_RULES.md](./GAME_RULES.md)，CPU權重見 [CPU_STRATEGY.md](./CPU_STRATEGY.md)。
 
 ## 目前資料規模
 
@@ -63,6 +63,6 @@ Coverage門檻：Statements 85%、Branches 80%、Functions 85%、Lines 85%。
 
 1. Phase 1 ✅ 資料基礎
 2. Phase 2 ✅ 核心遊戲引擎
-3. Phase 3 candidate：臺灣地圖遊戲介面
-4. Phase 4 CPU與平衡
+3. Phase 3 ✅ 臺灣地圖遊戲介面
+4. Phase 4 candidate：CPU與平衡驗證（[BALANCE_REPORT.md](./BALANCE_REPORT.md)）
 5. Phase 5 正式視覺與發布

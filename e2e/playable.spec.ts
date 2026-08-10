@@ -49,6 +49,29 @@ type CameraSample = {
   tokenVisible: boolean;
 };
 
+async function waitForCameraSamples(
+  page: Page,
+  property: 'cameraSamples' | 'cpuCameraSamples',
+): Promise<CameraSample[]> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate((name) => {
+          const expected = ['24:1', '25:2', '26:3', '0:4'];
+          const samples = (window as typeof window & Record<string, CameraSample[]>)[name] ?? [];
+          return expected.every((key) =>
+            samples.some((sample) => `${sample.position}:${sample.stepIndex}` === key),
+          );
+        }, property),
+      { timeout: 5000 },
+    )
+    .toBe(true);
+  return page.evaluate(
+    (name) => (window as typeof window & Record<string, CameraSample[]>)[name] ?? [],
+    property,
+  );
+}
+
 test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ page }) => {
   const diagnostics = observePage(page);
   await page.goto('');
@@ -65,6 +88,8 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   await expect(page.getByTestId('market-card')).toBeVisible();
   await expect(page.getByText('收藏任務', { exact: false })).toBeVisible();
   await expect(page.getByTestId('funds-player-1')).toHaveText('15');
+  await expect(page.locator('[data-testid^="player-card-player-"]')).toHaveCount(4);
+  await expect(page.getByTestId('player-card-player-3')).toContainText('電腦');
   await expectPageHealthy(page, diagnostics);
 });
 
@@ -127,9 +152,7 @@ test('擲骰逐格移動、Camera實際跟拍並保持棋子可見', async ({ pa
   });
   await page.getByRole('button', { name: '擲骰子' }).click();
   await waitForAction(page, '選擇一個合法目的地');
-  const samples = await page.evaluate(
-    () => (window as typeof window & { cameraSamples: CameraSample[] }).cameraSamples,
-  );
+  const samples = await waitForCameraSamples(page, 'cameraSamples');
   const movementSamples = [
     ['24', 1],
     ['25', 2],
@@ -307,4 +330,231 @@ test('Reduced Motion維持逐格邏輯並停用Camera縮放', async ({ page }) =
     '1',
   );
   await expect(page.getByRole('button', { name: /採購/ }).first()).toBeVisible();
+});
+
+test.describe('CPU回合情境', () => {
+  test('cpu-purchase真正增加產品並扣除採購金', async ({ page }) => {
+    const diagnostics = observePage(page);
+    await page.goto('game.html?testMode=1&scenario=cpu-purchase');
+    const cpu = page.getByTestId('player-card-player-2');
+    const beforeFunds = Number(await page.getByTestId('funds-player-2').textContent());
+    const beforeProducts = Number(await page.getByTestId('product-count-player-2').textContent());
+    await expect(cpu).toHaveAttribute('data-controller', 'cpu');
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    expect(Number(await page.getByTestId('funds-player-2').textContent())).toBeLessThan(
+      beforeFunds,
+    );
+    expect(Number(await page.getByTestId('product-count-player-2').textContent())).toBe(
+      beforeProducts + 1,
+    );
+    expect(await cpu.getAttribute('data-product-ids')).not.toBe('');
+    await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-settled', 'true');
+    await expectPageHealthy(page, diagnostics);
+  });
+
+  test('cpu-skip資金與產品不變並交棒真人', async ({ page }) => {
+    const diagnostics = observePage(page);
+    await page.goto('game.html?testMode=1&scenario=cpu-skip');
+    const cpu = page.getByTestId('player-card-player-2');
+    await expect(page.getByTestId('funds-player-2')).toHaveText('0');
+    await expect(page.getByTestId('product-count-player-2')).toHaveText('0');
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    await expect(page.getByTestId('funds-player-2')).toHaveText('0');
+    await expect(page.getByTestId('product-count-player-2')).toHaveText('0');
+    await expect(cpu).toHaveAttribute('data-product-ids', '');
+    await expectPageHealthy(page, diagnostics);
+  });
+
+  test('cpu-sale出售指定產品並增加資金', async ({ page }) => {
+    const diagnostics = observePage(page);
+    await page.goto('game.html?testMode=1&scenario=cpu-sale');
+    const cpu = page.getByTestId('player-card-player-2');
+    await expect(cpu).toHaveAttribute('data-product-ids', 'taoyuan-rice');
+    const beforeFunds = Number(await page.getByTestId('funds-player-2').textContent());
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    expect(Number(await page.getByTestId('funds-player-2').textContent())).toBeGreaterThan(
+      beforeFunds,
+    );
+    await expect(page.getByTestId('product-count-player-2')).toHaveText('0');
+    await expect(cpu).toHaveAttribute('data-product-ids', '');
+    await expectPageHealthy(page, diagnostics);
+  });
+
+  test('cpu-transport完成離島決策但主棋子留在交通格', async ({ page }) => {
+    const diagnostics = observePage(page);
+    await page.goto('game.html?testMode=1&scenario=cpu-transport');
+    const cpu = page.getByTestId('player-card-player-2');
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    await expect(page.locator('#action-panel')).toHaveAttribute(
+      'data-temporary-destination-id',
+      '',
+    );
+    await expect(cpu).toHaveAttribute('data-position', '13');
+    await expect(page.getByTestId('player-token-player-2')).toHaveAttribute('data-position', '13');
+    await expect(page.getByTestId('product-count-player-2')).toHaveText('1');
+    await expectPageHealthy(page, diagnostics);
+  });
+
+  test('cpu-camera逐格跟拍、抵達並回到overview', async ({ page }) => {
+    const diagnostics = observePage(page);
+    await page.goto('game.html?testMode=1&scenario=cpu-camera');
+    await page.evaluate(() => {
+      const camera = document.querySelector<HTMLElement>('[data-testid="board-camera"]')!;
+      const token = document.querySelector<HTMLElement>('[data-testid="player-token-player-2"]')!;
+      const samples: CameraSample[] = [];
+      (window as typeof window & { cpuCameraSamples: CameraSample[] }).cpuCameraSamples = samples;
+      const sample = () => {
+        const position = camera.dataset.focusedPosition;
+        const stepIndex = Number(camera.dataset.cameraStepIndex);
+        if (!position || stepIndex < 1) return;
+        if (
+          samples.some(
+            (value) => `${value.position}:${value.stepIndex}` === `${position}:${stepIndex}`,
+          )
+        )
+          return;
+        const viewportRect = camera.getBoundingClientRect();
+        const tokenRect = token.getBoundingClientRect();
+        const tokenCenterX = tokenRect.left + tokenRect.width / 2;
+        const tokenCenterY = tokenRect.top + tokenRect.height / 2;
+        samples.push({
+          position,
+          stepIndex,
+          x: Number(camera.dataset.cameraX),
+          y: Number(camera.dataset.cameraY),
+          scale: Number(camera.dataset.cameraScale),
+          tokenCenterX,
+          tokenCenterY,
+          viewportLeft: viewportRect.left,
+          viewportRight: viewportRect.right,
+          viewportTop: viewportRect.top,
+          viewportBottom: viewportRect.bottom,
+          tokenVisible:
+            tokenCenterX >= viewportRect.left - 2 &&
+            tokenCenterX <= viewportRect.right + 2 &&
+            tokenCenterY >= viewportRect.top - 2 &&
+            tokenCenterY <= viewportRect.bottom + 2,
+        });
+      };
+      new MutationObserver(() =>
+        requestAnimationFrame(() => requestAnimationFrame(sample)),
+      ).observe(camera, {
+        attributes: true,
+        attributeFilter: [
+          'data-focused-position',
+          'data-camera-x',
+          'data-camera-y',
+          'data-camera-step-index',
+        ],
+      });
+    });
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    const samples = await waitForCameraSamples(page, 'cpuCameraSamples');
+    const movementSamples = [
+      ['24', 1],
+      ['25', 2],
+      ['26', 3],
+      ['0', 4],
+    ].map(([position, stepIndex]) => {
+      const value = samples.find(
+        (sample) => sample.position === position && sample.stepIndex === stepIndex,
+      );
+      expect(
+        value,
+        `CPU缺少 position ${position}、step ${stepIndex} 的Camera sample`,
+      ).toBeDefined();
+      return value!;
+    });
+    for (const sample of movementSamples) {
+      expect(sample.scale).toBeGreaterThan(1);
+      expect(sample.tokenVisible).toBe(true);
+    }
+    expect(
+      new Set(movementSamples.map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(2)}`)).size,
+    ).toBeGreaterThanOrEqual(2);
+    await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-state', 'overview');
+    await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-settled', 'true');
+    await expectPageHealthy(page, diagnostics);
+  });
+
+  test('CPU回合期間真人控制鎖定，完成後恢復', async ({ page }) => {
+    await page.goto('game.html?testMode=1&scenario=cpu-purchase');
+    await expect(page.locator('#action-panel')).toHaveAttribute('data-phase', 'awaiting-purchase', {
+      timeout: 5000,
+    });
+    await expect(page.locator('#action-panel [data-action="buy"]').first()).toBeDisabled();
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+  });
+
+  test('1真人加3CPU完整跑完一輪並回到真人P1', async ({ page }) => {
+    await page.goto('game.html?testMode=1&scenario=cpu-round');
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    await expect(page.getByTestId('round')).toHaveText('第 2 / 12 輪');
+    for (const id of ['player-2', 'player-3', 'player-4']) {
+      await expect(page.getByTestId(`product-count-${id}`)).toHaveText('1');
+    }
+  });
+
+  test('4真人不補CPU且可由P1交棒P2', async ({ page }) => {
+    await page.goto('game.html');
+    await page.locator('input[name="player-count"][value="4"]').check({ force: true });
+    await page.getByRole('button', { name: '開始環島' }).click();
+    await expect(page.locator('[data-testid^="player-card-player-"]')).toHaveCount(4);
+    await expect(page.locator('[data-controller="cpu"]')).toHaveCount(0);
+    await page.getByRole('button', { name: '擲骰子' }).click();
+    await expect
+      .poll(() => page.locator('#action-panel').getAttribute('data-phase'), { timeout: 10000 })
+      .toMatch(/^awaiting-(purchase|sale|transport|turn-end)$/);
+    const phase = await page.locator('#action-panel').getAttribute('data-phase');
+    if (phase === 'awaiting-purchase') await page.getByRole('button', { name: '略過採購' }).click();
+    if (phase === 'awaiting-sale') await page.getByRole('button', { name: '略過出售' }).click();
+    if (phase === 'awaiting-transport')
+      await page.getByRole('button', { name: '略過行程' }).click();
+    await expect(page.locator('#action-panel')).toHaveAttribute('data-phase', 'awaiting-turn-end');
+    await page.getByRole('button', { name: '結束回合' }).click();
+    await expect(page.getByTestId('current-player')).toHaveText('玩家2');
+  });
+
+  test('cpu-restart會取消舊CPU timer並留在設定頁', async ({ page }) => {
+    const diagnostics = observePage(page);
+    await page.goto('game.html?testMode=1&scenario=cpu-restart');
+    await page.getByRole('button', { name: '測試重新開始' }).click();
+    await expect(page.getByRole('heading', { name: '這趟環島，有幾位採購王？' })).toBeVisible();
+    await page.waitForTimeout(300);
+    await expect(page.getByRole('heading', { name: '這趟環島，有幾位採購王？' })).toBeVisible();
+    await expect(page.getByTestId('board-camera')).toHaveCount(0);
+    expect(diagnostics.consoleErrors).toEqual([]);
+    expect(diagnostics.failedAssets).toEqual([]);
+  });
+
+  test('cpu-game-over完成最後CPU回合並顯示排名', async ({ page }) => {
+    const diagnostics = observePage(page);
+    await page.goto('game.html?testMode=1&scenario=cpu-game-over');
+    await expect(page.getByTestId('rankings')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('rankings').locator('[role="row"]')).toHaveCount(5);
+    await expect(page.getByTestId('rankings')).toContainText('測試電腦');
+    expect(diagnostics.consoleErrors).toEqual([]);
+    expect(diagnostics.failedAssets).toEqual([]);
+  });
+
+  test('Reduced Motion仍保留CPU逐格流程並停用Camera縮放', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('game.html?testMode=1&scenario=cpu-camera');
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-scale', '1');
+    await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-x', '0');
+    await expect(page.getByTestId('board-camera')).toHaveAttribute('data-camera-y', '0');
+  });
+
+  test('手機390×844可看見CPU標籤、鎖定操作並恢復真人', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('game.html?testMode=1&scenario=cpu-purchase');
+    await expect(page.getByTestId('player-card-player-2')).toContainText('電腦');
+    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+  });
 });

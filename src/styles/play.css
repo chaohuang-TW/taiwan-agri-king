@@ -348,6 +348,37 @@ dialog button {
   font-style: normal;
   font-weight: 900;
 }
+
+.controller-label,
+.cpu-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(34, 54, 45, 0.22);
+  border-radius: 999px;
+  padding: 0.18rem 0.45rem;
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.cpu-badge {
+  margin-left: 0.35rem;
+  border-color: rgba(188, 114, 53, 0.35);
+  color: var(--accent-dark);
+}
+
+.cpu-setup-note,
+.cpu-status {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.cpu-status {
+  margin: 0.4rem auto 0;
+  max-width: 44rem;
+  text-align: center;
+}
 .player-piece {
   flex: 0 0 auto;
   width: 28px;

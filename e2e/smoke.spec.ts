@@ -16,7 +16,7 @@ test('正式首頁可在桌機與手機正確載入', async ({ page }, testInfo)
   }
   await expect(page).toHaveTitle(/臺灣農產王/);
   await expect(page.getByRole('heading', { level: 1, name: /臺灣農產王/ })).toBeVisible();
-  await expect(page.getByText('Phase 3 開發預覽', { exact: true })).toBeVisible();
+  await expect(page.getByText('Phase 4 CPU 開發預覽', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: '開始遊戲', exact: true }).first()).toBeVisible();
   await expect(page.getByText('30', { exact: true })).toBeVisible();
   await expect(page.getByText('48', { exact: true })).toBeVisible();
