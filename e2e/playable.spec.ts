@@ -448,6 +448,7 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
       { timeout: 3000 },
     )
     .toBe(true);
+  await waitForStableBoardArtworkGeometry(page);
   await expect(page.locator('.board-tile.tile-offshore')).toHaveCount(3);
   const defaultTileAppearance = await page
     .locator('.board-tile[data-position="10"]')
@@ -472,7 +473,12 @@ test('正式首頁可設定兩名玩家並進入30格臺灣棋盤', async ({ pag
   expect(defaultTileAppearance.copyOpacity).toBe('0');
   expect(defaultTileAppearance.copyVisibility).toBe('hidden');
   const interactionTile = page.locator('.board-tile[data-position="10"]');
-  await interactionTile.hover();
+  const interactionTileBox = await interactionTile.boundingBox();
+  if (!interactionTileBox) throw new Error('Interaction tile has no rendered bounding box.');
+  await page.mouse.move(
+    interactionTileBox.x + interactionTileBox.width / 2,
+    interactionTileBox.y + interactionTileBox.height / 2,
+  );
   await expect(interactionTile.locator('.tile-icon-wrap')).toHaveCSS('visibility', 'visible');
   await expect(interactionTile.locator('.tile-copy')).toHaveCSS('visibility', 'visible');
   await page.mouse.move(2, 2);
