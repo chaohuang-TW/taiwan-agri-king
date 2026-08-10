@@ -1,3 +1,4 @@
+import './styles/tokens.css';
 import './styles/play.css';
 import { BOARD_TILES } from './data/board';
 import { COLLECTION_GOALS } from './data/collectionGoals';
