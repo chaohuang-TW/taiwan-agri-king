@@ -23,6 +23,7 @@ import type { GameState, Product, PurchaseSource, RandomSource } from './game/ty
 import { decideCpuAction, isCpuPlayer } from './cpu/cpuStrategy';
 import type { CpuDecision } from './cpu/cpuTypes';
 import { BoardCameraController } from './ui/boardCamera';
+import { DiceAnimationController } from './ui/dicePresentation';
 import { createBoardView, type BoardView } from './ui/renderBoard';
 import {
   getAllCollectionProgress,
@@ -44,7 +45,6 @@ const params = new URLSearchParams(window.location.search);
 const testMode = params.get('testMode') === '1';
 const scenario = params.get('scenario') ?? '';
 const uiDelay = {
-  dice: testMode ? 35 : 520,
   step: testMode ? 35 : 320,
   arrival: testMode ? 45 : 500,
   returning: testMode ? 45 : 400,
@@ -56,6 +56,7 @@ const uiDelay = {
 let state: GameState | null = null;
 let board: BoardView | null = null;
 let camera: BoardCameraController | null = null;
+let diceAnimation: DiceAnimationController | null = null;
 let ui = createUiPresentation();
 let errorMessage = '';
 let lastEventCardId: string | null = null;
@@ -88,6 +89,8 @@ function cleanupUiLifecycle(): void {
   lifecycleGeneration += 1;
   timers.forEach((timer) => window.clearTimeout(timer));
   timers.clear();
+  diceAnimation?.cleanup();
+  diceAnimation = null;
   camera?.cleanup();
   camera = null;
   board = null;
@@ -321,6 +324,7 @@ function initializePlaying(game: GameState): void {
   const host = document.querySelector<HTMLElement>('#board-host')!;
   board = createBoardView(host, game);
   camera = new BoardCameraController(board.viewport, board.content);
+  diceAnimation = new DiceAnimationController(root, { testMode });
   bindBoardDetails();
   renderDynamic();
 }
@@ -329,6 +333,8 @@ function renderDynamic(): void {
   const game = state;
   if (!game) return;
   if (game.phase === 'game-over') {
+    diceAnimation?.cleanup();
+    diceAnimation = null;
     camera?.cleanup();
     root.innerHTML = `${renderRanking(game)}${sharedDialogs()}<section id="completed-collections" class="completed-collections" hidden><h2>收藏成果</h2><div>${renderCollections(game)}</div></section>`;
     renderAtlas();
@@ -347,6 +353,7 @@ function renderDynamic(): void {
     actionPanel.dataset.phase = game.phase;
     actionPanel.dataset.currentPlayerId = getCurrentPlayer(game).id;
     actionPanel.dataset.temporaryDestinationId = game.temporaryDestinationId ?? '';
+    actionPanel.dataset.lastDiceRoll = game.lastDiceRoll?.toString() ?? '';
     if (testMode && scenario === 'cpu-restart') {
       actionPanel.insertAdjacentHTML(
         'beforeend',
@@ -406,10 +413,12 @@ async function animateMovement(generation: number): Promise<boolean> {
     ui.phase = 'showing-dice';
     renderDynamic();
     const player = getCurrentPlayer(state);
+    const diceResult = state.lastDiceRoll;
+    if (diceResult === null || !diceAnimation) return false;
+    await diceAnimation.show(diceResult, player.id, player.name);
+    if (generation !== lifecycleGeneration) return false;
     const token = board?.getToken(player.id);
     if (token) camera?.focus(token, 'focus-player', player.id, player.position, 0);
-    await scheduleUiDelay(uiDelay.dice);
-    if (generation !== lifecycleGeneration) return false;
     while (state?.phase === 'moving') {
       state = advanceMovementStep(state, gameRandom());
       board?.update(state);

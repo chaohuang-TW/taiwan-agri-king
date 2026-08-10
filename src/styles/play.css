@@ -867,6 +867,114 @@ dialog button {
 .event-reveal p {
   margin-top: 2px;
 }
+.dice-overlay {
+  position: fixed;
+  z-index: 25;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 18px;
+  padding: 24px;
+  color: var(--ink);
+  background: rgb(242 237 223 / 72%);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 110ms ease;
+}
+.dice-overlay.is-visible {
+  opacity: 1;
+}
+.dice-stage {
+  width: clamp(92px, 18vw, 132px);
+  height: clamp(92px, 18vw, 132px);
+  display: grid;
+  place-items: center;
+  perspective: 700px;
+}
+.dice-cube {
+  --dice-size: clamp(92px, 18vw, 132px);
+  width: var(--dice-size);
+  height: var(--dice-size);
+  position: relative;
+  transform: rotateX(var(--dice-rx, 0deg)) rotateY(var(--dice-ry, 0deg))
+    rotateZ(var(--dice-rz, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.dice-overlay[data-dice-state='rolling'] .dice-cube {
+  animation: dice-cube-roll 560ms linear infinite;
+}
+.dice-cube-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid #8b7552;
+  border-radius: 14px;
+  color: #3e3426;
+  background: #fff8e8;
+  box-shadow:
+    inset 0 0 0 5px #f1dfb8,
+    0 10px 22px rgb(62 52 38 / 15%);
+  backface-visibility: hidden;
+}
+.dice-cube-face-1 {
+  transform: translateZ(calc(var(--dice-size) / 2));
+}
+.dice-cube-face-2 {
+  transform: rotateX(90deg) translateZ(calc(var(--dice-size) / 2));
+}
+.dice-cube-face-3 {
+  transform: rotateY(90deg) translateZ(calc(var(--dice-size) / 2));
+}
+.dice-cube-face-4 {
+  transform: rotateY(-90deg) translateZ(calc(var(--dice-size) / 2));
+}
+.dice-cube-face-5 {
+  transform: rotateX(-90deg) translateZ(calc(var(--dice-size) / 2));
+}
+.dice-cube-face-6 {
+  transform: rotateY(180deg) translateZ(calc(var(--dice-size) / 2));
+}
+.dice-face-dots {
+  width: 64%;
+  height: 64%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  place-items: center;
+}
+.dice-dot {
+  width: clamp(12px, 3vw, 19px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #315c49;
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 38%);
+}
+.dice-result-label {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(1rem, 2.4vw, 1.3rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+@keyframes dice-cube-roll {
+  0% {
+    transform: rotateX(var(--dice-rx, 0deg)) rotateY(var(--dice-ry, 0deg))
+      rotateZ(var(--dice-rz, 0deg));
+  }
+  50% {
+    transform: rotateX(calc(var(--dice-rx, 0deg) + 180deg))
+      rotateY(calc(var(--dice-ry, 0deg) + 220deg)) rotateZ(calc(var(--dice-rz, 0deg) + 90deg));
+  }
+  100% {
+    transform: rotateX(calc(var(--dice-rx, 0deg) + 360deg))
+      rotateY(calc(var(--dice-ry, 0deg) + 440deg)) rotateZ(calc(var(--dice-rz, 0deg) + 180deg));
+  }
+}
 .game-error {
   position: fixed;
   z-index: 20;
@@ -1235,5 +1343,14 @@ dialog::backdrop {
   }
   .map-camera-content {
     transform: translate3d(0, 0, 0) scale(1) !important;
+  }
+  .dice-overlay {
+    transition: none;
+  }
+  .dice-overlay[data-dice-state='rolling'] .dice-cube {
+    animation: none !important;
+  }
+  .dice-cube {
+    transition: none;
   }
 }
