@@ -45,8 +45,11 @@ const root: HTMLDivElement = mount;
 const params = new URLSearchParams(window.location.search);
 const testMode = params.get('testMode') === '1';
 const scenario = params.get('scenario') ?? '';
+const cameraTestScenario = scenario === 'movement' || scenario === 'cpu-camera';
 const uiDelay = {
-  step: testMode ? 35 : 320,
+  // Camera E2E needs one render frame per step even on a busy CI runner.
+  // This affects only deterministic test scenarios, never production play.
+  step: testMode ? (cameraTestScenario ? 260 : 35) : 320,
   arrival: testMode ? 45 : 500,
   returning: testMode ? 45 : 400,
   handoff: testMode ? 30 : 620,
