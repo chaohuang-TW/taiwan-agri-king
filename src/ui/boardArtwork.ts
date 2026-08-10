@@ -1,7 +1,7 @@
 import type { BoardTileType } from '../game/types';
 
 export const BOARD_COORDINATES: ReadonlyArray<readonly [number, number]> = [
-  [58, 18],
+  [49, 18],
   [49, 9],
   [41, 13],
   [34, 20],
