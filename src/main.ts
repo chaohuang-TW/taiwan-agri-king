@@ -7,6 +7,7 @@ import { MARKET_CARDS } from './data/marketCards';
 import { PRODUCT_CATEGORY_NAMES, PRODUCTS } from './data/products';
 import { validateGameData } from './game/dataValidation';
 import { renderHeroTaiwanArtwork } from './ui/boardArtwork';
+import { renderProductArtwork } from './ui/productArtwork';
 
 validateGameData();
 
@@ -36,13 +37,23 @@ app.innerHTML = `
     </section>
     <section class="facts" aria-label="遊戲內容規模"><article><strong>${BOARD_TILES.length}</strong><span>格臺灣棋盤</span></article><article><strong>${PRODUCTS.length}</strong><span>項農漁產品</span></article><article><strong>${MARKET_CARDS.length}</strong><span>張市場卡</span></article><article><strong>${COLLECTION_GOALS.length}</strong><span>項收藏任務</span></article></section>
     <section class="how-to-play" aria-labelledby="play-title"><h2 id="play-title">一趟看得懂，也玩得完的環島</h2><div class="play-sequence"><article><strong>擲骰前進</strong><p>沿臺灣本島 0 至 26 格逐站移動。</p></article><article><strong>採購與出售</strong><p>在產地、農漁會與市場做一次選擇。</p></article><article><strong>完成收藏</strong><p>公開追蹤 12 項任務，12 輪後結算。</p></article></div></section>
-    <section class="produce-stage" aria-labelledby="produce-title"><div><h2 id="produce-title">從產地開始認識臺灣</h2><p>真實產地脈絡與遊戲化成本、產值分開保存。每張產品卡清楚標示縣市、類別與旺季。</p><button type="button" data-open="atlas-dialog">打開 48 項圖鑑</button></div><div class="produce-stack">${featured.map((product, index) => `<article style="--card-index:${index}"><span>${PRODUCT_CATEGORY_NAMES[product.category]}</span><h3>${product.name}</h3><p>${countyName(product.countyId)}</p><small>旺季 ${product.peakSeasons.length} 季</small></article>`).join('')}</div></section>
+    <section class="produce-stage" aria-labelledby="produce-title"><div><h2 id="produce-title">從產地開始認識臺灣</h2><p>真實產地脈絡與遊戲化成本、產值分開保存。每張產品卡清楚標示縣市、類別與旺季。</p><button type="button" data-open="atlas-dialog">打開 48 項圖鑑</button></div><div class="produce-stack">${featured
+      .map((product, index) => {
+        const artwork = renderProductArtwork(product, 'homepage-product-image');
+        return `<article class="${artwork ? 'has-artwork' : 'no-artwork'}" style="--card-index:${index}">${artwork ? `<div class="homepage-product-art">${artwork}</div>` : ''}<span>${PRODUCT_CATEGORY_NAMES[product.category]}</span><h3>${product.name}</h3><p>${countyName(product.countyId)}</p><small>旺季 ${product.peakSeasons.length} 季</small></article>`;
+      })
+      .join('')}</div></section>
     <section class="family-note"><div><h2>1 至 4 人，共用一臺裝置</h2><p>沒有隱藏資訊。輪到誰，畫面就會清楚交棒；手機與桌機都能完成整場遊戲。</p></div><a class="primary-link" href="./game.html">開始環島</a></section>
     <section class="developer-note"><h2>開發資訊</h2><p>核心規則由純 TypeScript 引擎負責，正式介面只呈現狀態並送出玩家操作。</p><a href="./engine-test.html">核心引擎測試</a></section>
   </main>
   <footer><p>採購金、採購成本與產值皆為遊戲化數值，不代表實際市場價格或官方農業產值。</p></footer>
   <dialog id="rules-dialog" aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">遊戲規則</h2><button type="button" data-close aria-label="關閉規則">關閉</button></div><div class="rules-grid"><article><strong>目標</strong><p>12 輪後，以產品價值、收藏加成與資金換分合計最高者獲勝。</p></article><article><strong>四季</strong><p>每 3 輪更換季節，旺季產品價值提高。</p></article><article><strong>採購</strong><p>產地、農會與漁會每次可買 0 或 1 項。</p></article><article><strong>市場</strong><p>市場每次可賣 0 或 1 項，市場卡會改變行情。</p></article><article><strong>收藏</strong><p>12 項任務公開顯示，完成即可取得加成。</p></article><article><strong>離島</strong><p>交通格可選擇合法離島，完成一次特別採購。</p></article></div></dialog>
-  <dialog id="atlas-dialog" aria-labelledby="atlas-title"><div class="dialog-head"><h2 id="atlas-title">農產圖鑑</h2><button type="button" data-close aria-label="關閉圖鑑">關閉</button></div><div class="atlas-grid">${PRODUCTS.map((product) => `<article><span>${PRODUCT_CATEGORY_NAMES[product.category]}</span><h3>${product.name}</h3><p>${countyName(product.countyId)}</p><small>旺季：${product.peakSeasons.join('、')}</small></article>`).join('')}</div></dialog>
+  <dialog id="atlas-dialog" aria-labelledby="atlas-title"><div class="dialog-head"><h2 id="atlas-title">農產圖鑑</h2><button type="button" data-close aria-label="關閉圖鑑">關閉</button></div><div class="atlas-grid">${PRODUCTS.map(
+    (product) => {
+      const artwork = renderProductArtwork(product, 'atlas-artwork');
+      return `<article class="atlas-product-card ${artwork ? 'has-artwork' : 'no-artwork'}" data-product-id="${product.id}">${artwork ? `<div class="atlas-artwork-wrap">${artwork}</div>` : ''}<div><span>${PRODUCT_CATEGORY_NAMES[product.category]}</span><h3>${product.name}</h3><p>${countyName(product.countyId)}</p><small>旺季：${product.peakSeasons.join('、')}</small></div></article>`;
+    },
+  ).join('')}</div></dialog>
 `;
 
 app.addEventListener('click', (event) => {

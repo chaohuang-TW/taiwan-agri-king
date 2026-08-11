@@ -3636,3 +3636,188 @@ body {
     transition: none;
   }
 }
+
+/* Phase 5B-1: supplied identity badges and partial product artwork system. */
+.player-badge {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.player-badge-board {
+  width: 38px;
+  height: 38px;
+}
+
+.player-badge-hud {
+  width: 28px;
+  height: 28px;
+}
+
+.player-badge-ranking {
+  width: 34px;
+  height: 34px;
+}
+
+.player-badge-p1,
+.player-badge-p2,
+.player-badge-p3,
+.player-badge-p4 {
+  border-radius: 50%;
+}
+
+.player-badge-c1,
+.player-badge-c2,
+.player-badge-c3 {
+  clip-path: polygon(50% 0, 96% 25%, 96% 75%, 50% 100%, 4% 75%, 4% 25%);
+}
+
+.player-token-human,
+.player-token-cpu {
+  display: grid;
+  place-items: center;
+}
+
+.player-token-cpu {
+  border-radius: 0;
+}
+
+.turn-player-badge {
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+}
+
+.turn-status span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-artwork-wrap {
+  height: 104px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgb(255 253 248 / 68%);
+}
+
+.product-artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.product-choice .product-artwork-wrap {
+  margin: -2px -2px 9px;
+}
+
+.game-stage .product-choice button {
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.game-stage .product-choice button:hover:not(:disabled) {
+  transform: none;
+}
+
+.player-inventory {
+  display: flex;
+  gap: 5px;
+  margin: 8px 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.player-inventory li {
+  min-width: 38px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 0.52rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.inventory-artwork {
+  width: 30px;
+  height: 26px;
+}
+
+.ranking-player-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ranking-row-badge {
+  width: 24px;
+  height: 24px;
+}
+
+.winner-name .ranking-player-badge {
+  display: inline-block;
+  width: 42px;
+  height: 42px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+
+.atlas-product-card.has-artwork {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.atlas-artwork-wrap {
+  width: 92px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgb(239 243 232 / 82%);
+}
+
+.atlas-artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 560px) {
+  .turn-player-badge {
+    width: 16px;
+    height: 16px;
+  }
+
+  .player-badge-board {
+    width: 32px;
+    height: 32px;
+  }
+
+  .player-badge-hud {
+    width: 24px;
+    height: 24px;
+  }
+
+  .product-artwork-wrap {
+    height: 84px;
+  }
+
+  .atlas-product-card.has-artwork {
+    grid-template-columns: 72px 1fr;
+    gap: 8px;
+  }
+
+  .atlas-artwork-wrap {
+    width: 72px;
+    height: 66px;
+  }
+}
