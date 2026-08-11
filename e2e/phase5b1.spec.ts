@@ -57,8 +57,22 @@ test('Phase 5B-1 desktop token identity uses P/C supplied badges consistently', 
     'data-identity-label',
     'C3',
   );
-  await expect(page.getByTestId('player-card-player-1')).toContainText('P1');
-  await expect(page.getByTestId('player-card-player-2')).toContainText('C1');
+  await expect(page.locator('.player-identity-label')).toHaveCount(0);
+  await expect(
+    page.getByTestId('player-card-player-1').locator('[data-identity-label="P1"]'),
+  ).toHaveCount(1);
+  await expect(
+    page.getByTestId('player-card-player-2').locator('[data-identity-label="C1"]'),
+  ).toHaveCount(1);
+  for (const playerId of ['player-1', 'player-2', 'player-3', 'player-4']) {
+    const badge = page.getByTestId(`player-token-${playerId}`).locator('.player-badge-board');
+    const size = await badge.evaluate((element) => ({
+      width: Number.parseFloat(getComputedStyle(element).width),
+      height: Number.parseFloat(getComputedStyle(element).height),
+    }));
+    expect(size.width).toBeGreaterThanOrEqual(36);
+    expect(size.height).toBeGreaterThanOrEqual(36);
+  }
   await page.screenshot({ path: 'qa/phase5b1/desktop-1280-token-identity.png' });
   await expectHealthy(page, diagnostics);
 });
@@ -68,12 +82,25 @@ test('Phase 5B-1 procurement cards show supplied product samples', async ({ page
   const diagnostics = await openScenario(page, 'phase5b1-procurement');
   await expect(page.locator('.product-choice')).toHaveCount(3);
   await expect(page.locator('.product-choice [data-product-artwork]')).toHaveCount(2);
+  await expect(
+    page.locator('[data-product-id="changhua-grape"] [data-product-artwork]'),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[data-product-id="changhua-grape"] .product-artwork-wrap'),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[data-product-id="changhua-rice"] [data-product-artwork]'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('[data-product-id="changhua-eggs"] [data-product-artwork]'),
+  ).toHaveCount(1);
+  await expect(page.getByText('未提供圖片')).toHaveCount(0);
   await expect(page.getByText('彰化平原', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'qa/phase5b1/desktop-1280-procurement-cards.png' });
   await expectHealthy(page, diagnostics);
 });
 
-test('Phase 5B-1 inventory and atlas expose artwork with text fallback elsewhere', async ({
+test('Phase 5B-1 inventory and atlas show artwork only where supplied', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'desktop QA screenshot');
@@ -83,6 +110,9 @@ test('Phase 5B-1 inventory and atlas expose artwork with text fallback elsewhere
   const atlas = page.getByRole('dialog', { name: '農產圖鑑' });
   await expect(atlas).toBeVisible();
   await expect(atlas.locator('[data-product-artwork]')).toHaveCount(6);
+  await expect(atlas.locator('.atlas-artwork-wrap')).toHaveCount(6);
+  await expect(atlas.locator('.atlas-product-card.no-artwork')).toHaveCount(42);
+  await expect(atlas.getByText('未提供圖片')).toHaveCount(0);
   await page.screenshot({ path: 'qa/phase5b1/desktop-1280-inventory-and-atlas.png' });
   await expectHealthy(page, diagnostics);
 });
@@ -102,6 +132,17 @@ test('Phase 5B-1 mobile view keeps token identity and product artwork legible', 
     'data-identity-label',
     'C1',
   );
+  await expect(page.locator('.player-identity-label')).toHaveCount(0);
+  for (const playerId of ['player-1', 'player-2', 'player-3', 'player-4']) {
+    const badge = page.getByTestId(`player-token-${playerId}`).locator('.player-badge-board');
+    const size = await badge.evaluate((element) => ({
+      width: Number.parseFloat(getComputedStyle(element).width),
+      height: Number.parseFloat(getComputedStyle(element).height),
+    }));
+    expect(size.width).toBeGreaterThanOrEqual(30);
+    expect(size.height).toBeGreaterThanOrEqual(30);
+  }
+  await expect(page.getByText('未提供圖片')).toHaveCount(0);
   await page.screenshot({ path: 'qa/phase5b1/mobile-390-token-and-products.png' });
   await expectHealthy(page, diagnostics);
 });

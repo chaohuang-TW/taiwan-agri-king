@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PRODUCTS } from '../src/data/products';
-import { getProductArtwork, PRODUCT_ARTWORK } from '../src/ui/productArtwork';
+import { getProductArtwork, PRODUCT_ARTWORK, renderProductArtwork } from '../src/ui/productArtwork';
 
 describe('product artwork presentation mapping', () => {
   it('maps the six supplied samples to exact product IDs', () => {
@@ -20,5 +20,11 @@ describe('product artwork presentation mapping', () => {
 
   it('returns no formal artwork for products outside the six samples', () => {
     expect(getProductArtwork('taoyuan-persimmon')).toBeNull();
+  });
+
+  it('renders no placeholder markup when a product has no supplied artwork', () => {
+    const product = PRODUCTS.find(({ id }) => id === 'changhua-grape')!;
+
+    expect(renderProductArtwork(product)).toBe('');
   });
 });

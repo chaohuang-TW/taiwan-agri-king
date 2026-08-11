@@ -52,8 +52,6 @@ export function getProductArtwork(productId: string): ProductArtwork | null {
 
 export function renderProductArtwork(product: Product, className = ''): string {
   const artwork = getProductArtwork(product.id);
-  if (!artwork) {
-    return `<span class="product-artwork product-artwork-fallback ${className}" role="img" aria-label="${product.name}產品圖尚未提供">未提供圖片</span>`;
-  }
+  if (!artwork) return '';
   return `<img class="product-artwork ${className}" src="${artwork.assetUrl}" alt="${artwork.alt}" data-product-artwork="${product.id}" loading="lazy" decoding="async" draggable="false" />`;
 }

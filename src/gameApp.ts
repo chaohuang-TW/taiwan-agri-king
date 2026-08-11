@@ -244,8 +244,9 @@ function productCard(product: Product, source: PurchaseSource, game: GameState):
   const insufficient = player.funds < price.final;
   const disabled = owned || insufficient || ui.locked;
   const value = getCurrentProductValue(product, game.season, activeMarketCard(game));
-  return `<article class="product-choice" data-product-category="${product.category}">
-    <div class="product-artwork-wrap">${renderProductArtwork(product, 'procurement-artwork')}</div>
+  const artwork = renderProductArtwork(product, 'procurement-artwork');
+  return `<article class="product-choice" data-product-id="${product.id}" data-product-category="${product.category}">
+    ${artwork ? `<div class="product-artwork-wrap">${artwork}</div>` : ''}
     <div class="product-choice-head"><div><span>${getCategoryLabel(product.category)}</span><h3>${escapeHtml(product.name)}</h3><p>${getCountyName(product.countyId)}</p></div><strong>${value}<small>目前產值</small></strong></div>
     <dl><div><dt>採購</dt><dd>${price.final}</dd></div><div><dt>基礎產值</dt><dd>${product.baseValue}</dd></div><div><dt>旺季</dt><dd>${product.peakSeasons.map(getSeasonLabel).join('、')}</dd></div></dl>
     ${source === 'farmers-association' ? `<p class="price-detail">原價 ${price.original} | 農會優惠 -${price.associationDiscount}${price.marketDiscount ? ` | 市場優惠 -${price.marketDiscount}` : ''} | 本次 ${price.final}</p>` : price.marketDiscount ? `<p class="price-detail">原價 ${price.original} | 市場優惠 -${price.marketDiscount} | 本次 ${price.final}</p>` : ''}
@@ -267,14 +268,14 @@ function renderPlayers(game: GameState): string {
       const ownedProducts = getOwnedProducts(player);
       const inventory = ownedProducts.length
         ? `<ul class="player-inventory" aria-label="${identity.fullLabel}已持有產品">${ownedProducts
-            .map(
-              (product) =>
-                `<li>${renderProductArtwork(product, 'inventory-artwork')}<span>${escapeHtml(product.name)}</span></li>`,
-            )
+            .map((product) => {
+              const artwork = renderProductArtwork(product, 'inventory-artwork');
+              return `<li class="${artwork ? 'has-artwork' : 'no-artwork'}">${artwork}<span>${escapeHtml(product.name)}</span></li>`;
+            })
             .join('')}</ul>`
         : '';
       return `<article class="player-status player-${index + 1} ${index === game.currentPlayerIndex ? 'is-current' : ''}" data-testid="player-card-${player.id}" data-controller="${player.controller ?? 'human'}" data-position="${player.position}" data-product-ids="${escapeHtml(player.productIds.join(','))}">
-        <div class="player-status-title">${renderPlayerBadge(identity, 'hud-player-badge', 'hud')}<span class="player-identity-label">${identity.badgeLabel}</span><h3>${escapeHtml(player.name)}</h3><span class="controller-label">${controllerLabel}</span>${index === game.currentPlayerIndex ? '<em>目前回合</em>' : ''}</div>
+        <div class="player-status-title">${renderPlayerBadge(identity, 'hud-player-badge', 'hud')}<h3>${escapeHtml(player.name)}</h3><span class="controller-label">${controllerLabel}</span>${index === game.currentPlayerIndex ? '<em>目前回合</em>' : ''}</div>
         <dl><div><dt>採購金</dt><dd data-testid="funds-${player.id}">${player.funds}</dd></div><div><dt>位置</dt><dd>${tile.shortName}</dd></div><div><dt>產品</dt><dd data-testid="product-count-${player.id}">${player.productIds.length}</dd></div><div><dt>收藏</dt><dd>${completed}</dd></div></dl>
         ${inventory}
         <p>目前估值 <strong data-testid="score-${player.id}">${score.total}</strong></p>
@@ -331,7 +332,14 @@ function renderActionPanel(game: GameState): string {
   }
   if (game.phase === 'awaiting-sale') {
     const products = getOwnedProducts(player);
-    return `<div class="action-wide"><div class="action-copy"><span>農產市場</span><h2>出售 0 或 1 項產品</h2><p>${products.length ? '出售價值已套用本季與市場卡。' : '目前沒有可出售的農產品。'}</p></div><div class="product-choice-grid">${products.map((product) => `<article class="product-choice"><div class="product-artwork-wrap">${renderProductArtwork(product, 'sale-artwork')}</div><div class="product-choice-head"><div><span>${getCountyName(product.countyId)}</span><h3>${escapeHtml(product.name)}</h3></div><strong>${getCurrentProductValue(product, game.season, activeMarketCard(game))}<small>出售價值</small></strong></div><button type="button" data-action="sell" data-product-id="${product.id}" ${ui.locked ? 'disabled' : ''}>出售</button></article>`).join('')}</div><button class="quiet-action" type="button" data-action="skip-sale" ${ui.locked ? 'disabled' : ''}>略過出售</button></div>`;
+    return `<div class="action-wide"><div class="action-copy"><span>農產市場</span><h2>出售 0 或 1 項產品</h2><p>${products.length ? '出售價值已套用本季與市場卡。' : '目前沒有可出售的農產品。'}</p></div><div class="product-choice-grid">${products
+      .map((product) => {
+        const artwork = renderProductArtwork(product, 'sale-artwork');
+        return `<article class="product-choice" data-product-id="${product.id}">${artwork ? `<div class="product-artwork-wrap">${artwork}</div>` : ''}<div class="product-choice-head"><div><span>${getCountyName(product.countyId)}</span><h3>${escapeHtml(product.name)}</h3></div><strong>${getCurrentProductValue(product, game.season, activeMarketCard(game))}<small>出售價值</small></strong></div><button type="button" data-action="sell" data-product-id="${product.id}" ${ui.locked ? 'disabled' : ''}>出售</button></article>`;
+      })
+      .join(
+        '',
+      )}</div><button class="quiet-action" type="button" data-action="skip-sale" ${ui.locked ? 'disabled' : ''}>略過出售</button></div>`;
   }
   if (game.phase === 'awaiting-transport' && pending?.kind === 'transport') {
     return `<div class="action-wide"><div class="action-copy"><span>離島特別行程</span><h2>選擇一個合法目的地</h2><p>離島採購完成後，主棋子仍停留在交通格。</p></div><div class="destination-grid">${pending.destinationIds
@@ -706,10 +714,10 @@ function renderAtlas(): void {
       (county === 'all' || product.countyId === county),
   );
   grid.innerHTML = products
-    .map(
-      (product) =>
-        `<article class="atlas-product-card" data-product-id="${product.id}"><div class="atlas-artwork-wrap">${renderProductArtwork(product, 'atlas-artwork')}</div><div><span>${getCategoryLabel(product.category)}</span><h3>${escapeHtml(product.name)}</h3><p>${getCountyName(product.countyId)}</p><small>旺季：${product.peakSeasons.map(getSeasonLabel).join('、')}</small></div></article>`,
-    )
+    .map((product) => {
+      const artwork = renderProductArtwork(product, 'atlas-artwork');
+      return `<article class="atlas-product-card ${artwork ? 'has-artwork' : 'no-artwork'}" data-product-id="${product.id}">${artwork ? `<div class="atlas-artwork-wrap">${artwork}</div>` : ''}<div><span>${getCategoryLabel(product.category)}</span><h3>${escapeHtml(product.name)}</h3><p>${getCountyName(product.countyId)}</p><small>旺季：${product.peakSeasons.map(getSeasonLabel).join('、')}</small></div></article>`;
+    })
     .join('');
 }
 

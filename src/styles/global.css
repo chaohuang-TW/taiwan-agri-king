@@ -1264,7 +1264,7 @@ body {
   object-fit: contain;
 }
 
-.atlas-product-card {
+.atlas-product-card.has-artwork {
   display: grid;
   grid-template-columns: 104px 1fr;
   align-items: center;
@@ -1292,7 +1292,7 @@ body {
     height: 76px;
   }
 
-  .atlas-product-card {
+  .atlas-product-card.has-artwork {
     grid-template-columns: 76px 1fr;
     gap: 9px;
   }

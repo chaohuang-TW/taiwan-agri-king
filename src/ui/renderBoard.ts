@@ -81,10 +81,10 @@ export function createBoardView(host: HTMLElement, initialState: GameState): Boa
                   [13, 11],
                 ]
               : [
-                  [-16, -16],
-                  [16, -16],
-                  [-16, 16],
-                  [16, 16],
+                  [-20, -20],
+                  [20, -20],
+                  [-20, 20],
+                  [20, 20],
                 ];
       const [offsetX, offsetY] = offsets[peerIndex] ?? [0, 0];
       token.style.setProperty('--token-x', `${coordinate[0]}%`);
