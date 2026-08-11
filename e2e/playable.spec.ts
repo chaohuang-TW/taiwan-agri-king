@@ -305,6 +305,39 @@ async function waitForCameraSamples(
   );
 }
 
+async function waitForCpuCameraCycleToReturnToHuman(page: Page): Promise<CameraSample[]> {
+  const samples = await waitForCameraSamples(page, 'cpuCameraSamples');
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const currentPlayer = document.querySelector<HTMLElement>(
+            '[data-testid="current-player"]',
+          )?.textContent;
+          const currentController = document.querySelector<HTMLElement>('.player-status.is-current')
+            ?.dataset.controller;
+          const camera = document.querySelector<HTMLElement>('[data-testid="board-camera"]');
+          const samples =
+            (window as typeof window & { cpuCameraSamples?: CameraSample[] }).cpuCameraSamples ??
+            [];
+          const complete =
+            currentController === 'human' &&
+            camera?.dataset.cameraState === 'overview' &&
+            camera.dataset.cameraSettled === 'true';
+          return complete
+            ? 'ready'
+            : `currentPlayer=${currentPlayer}; controller=${currentController}; cameraState=${camera?.dataset.cameraState}; cameraSettled=${camera?.dataset.cameraSettled}; cameraSamples=${samples.length}`;
+        }),
+      {
+        timeout: 15000,
+        message: '等待已觀察的 CPU Camera cycle 回到 human overview',
+      },
+    )
+    .toBe('ready');
+  await expect(page.getByTestId('current-player')).toHaveText('測試真人');
+  return samples;
+}
+
 async function waitForStableBoardArtworkGeometry(page: Page): Promise<BoardArtworkGeometry> {
   return page.evaluate(
     ({ consecutiveSamples, epsilon, timeout, tolerance }) =>
@@ -917,7 +950,7 @@ test.describe('CPU回合情境', () => {
     await prepareCameraObserver(page, 'player-token-player-2', 'cpuCameraSamples');
     await page.goto('game.html?testMode=1&scenario=cpu-camera');
     await waitForCameraObserverReady(page);
-    await expect(page.getByTestId('current-player')).toHaveText('測試真人', { timeout: 5000 });
+    const samples = await waitForCpuCameraCycleToReturnToHuman(page);
     const diceObservations = await getDiceObservations(page);
     expect(
       diceObservations.some(
@@ -936,7 +969,6 @@ test.describe('CPU回合情境', () => {
       expect(observation.top).toBeGreaterThanOrEqual(0);
     }
     await expectPageHealthy(page, diagnostics);
-    const samples = await waitForCameraSamples(page, 'cpuCameraSamples');
     const movementSamples = [
       ['24', 1],
       ['25', 2],
