@@ -245,7 +245,7 @@ function productCard(product: Product, source: PurchaseSource, game: GameState):
   const disabled = owned || insufficient || ui.locked;
   const value = getCurrentProductValue(product, game.season, activeMarketCard(game));
   const artwork = renderProductArtwork(product, 'procurement-artwork');
-  return `<article class="product-choice" data-product-id="${product.id}" data-product-category="${product.category}">
+  return `<article class="product-choice" data-product-category="${product.category}">
     ${artwork ? `<div class="product-artwork-wrap">${artwork}</div>` : ''}
     <div class="product-choice-head"><div><span>${getCategoryLabel(product.category)}</span><h3>${escapeHtml(product.name)}</h3><p>${getCountyName(product.countyId)}</p></div><strong>${value}<small>目前產值</small></strong></div>
     <dl><div><dt>採購</dt><dd>${price.final}</dd></div><div><dt>基礎產值</dt><dd>${product.baseValue}</dd></div><div><dt>旺季</dt><dd>${product.peakSeasons.map(getSeasonLabel).join('、')}</dd></div></dl>
@@ -335,7 +335,7 @@ function renderActionPanel(game: GameState): string {
     return `<div class="action-wide"><div class="action-copy"><span>農產市場</span><h2>出售 0 或 1 項產品</h2><p>${products.length ? '出售價值已套用本季與市場卡。' : '目前沒有可出售的農產品。'}</p></div><div class="product-choice-grid">${products
       .map((product) => {
         const artwork = renderProductArtwork(product, 'sale-artwork');
-        return `<article class="product-choice" data-product-id="${product.id}">${artwork ? `<div class="product-artwork-wrap">${artwork}</div>` : ''}<div class="product-choice-head"><div><span>${getCountyName(product.countyId)}</span><h3>${escapeHtml(product.name)}</h3></div><strong>${getCurrentProductValue(product, game.season, activeMarketCard(game))}<small>出售價值</small></strong></div><button type="button" data-action="sell" data-product-id="${product.id}" ${ui.locked ? 'disabled' : ''}>出售</button></article>`;
+        return `<article class="product-choice">${artwork ? `<div class="product-artwork-wrap">${artwork}</div>` : ''}<div class="product-choice-head"><div><span>${getCountyName(product.countyId)}</span><h3>${escapeHtml(product.name)}</h3></div><strong>${getCurrentProductValue(product, game.season, activeMarketCard(game))}<small>出售價值</small></strong></div><button type="button" data-action="sell" data-product-id="${product.id}" ${ui.locked ? 'disabled' : ''}>出售</button></article>`;
       })
       .join(
         '',

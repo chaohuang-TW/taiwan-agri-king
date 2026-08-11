@@ -80,20 +80,16 @@ test('Phase 5B-1 desktop token identity uses P/C supplied badges consistently', 
 test('Phase 5B-1 procurement cards show supplied product samples', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'desktop QA screenshot');
   const diagnostics = await openScenario(page, 'phase5b1-procurement');
-  await expect(page.locator('.product-choice')).toHaveCount(3);
-  await expect(page.locator('.product-choice [data-product-artwork]')).toHaveCount(2);
-  await expect(
-    page.locator('[data-product-id="changhua-grape"] [data-product-artwork]'),
-  ).toHaveCount(0);
-  await expect(
-    page.locator('[data-product-id="changhua-grape"] .product-artwork-wrap'),
-  ).toHaveCount(0);
-  await expect(
-    page.locator('[data-product-id="changhua-rice"] [data-product-artwork]'),
-  ).toHaveCount(1);
-  await expect(
-    page.locator('[data-product-id="changhua-eggs"] [data-product-artwork]'),
-  ).toHaveCount(1);
+  const productCards = page.locator('.product-choice');
+  const grapeCard = productCards.filter({ has: page.getByRole('heading', { name: '葡萄' }) });
+  const riceCard = productCards.filter({ has: page.getByRole('heading', { name: '彰化稻米' }) });
+  const eggCard = productCards.filter({ has: page.getByRole('heading', { name: '雞蛋' }) });
+  await expect(productCards).toHaveCount(3);
+  await expect(productCards.locator('[data-product-artwork]')).toHaveCount(2);
+  await expect(grapeCard.locator('[data-product-artwork]')).toHaveCount(0);
+  await expect(grapeCard.locator('.product-artwork-wrap')).toHaveCount(0);
+  await expect(riceCard.locator('[data-product-artwork]')).toHaveCount(1);
+  await expect(eggCard.locator('[data-product-artwork]')).toHaveCount(1);
   await expect(page.getByText('未提供圖片')).toHaveCount(0);
   await expect(page.getByText('彰化平原', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'qa/phase5b1/desktop-1280-procurement-cards.png' });
