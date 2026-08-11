@@ -1,11 +1,7 @@
 import { BOARD_TILES } from '../data/board';
 import type { GameState } from '../game/types';
-import {
-  BOARD_COORDINATES,
-  BOARD_ARTWORK_ASSET_URL,
-  renderPlayerTokenIcon,
-  renderTileIcon,
-} from './boardArtwork';
+import { BOARD_COORDINATES, BOARD_ARTWORK_ASSET_URL, renderTileIcon } from './boardArtwork';
+import { getPlayerIdentityMap, renderPlayerBadge } from './playerIdentity';
 
 export interface BoardView {
   root: HTMLElement;
@@ -16,6 +12,7 @@ export interface BoardView {
 }
 
 export function createBoardView(host: HTMLElement, initialState: GameState): BoardView {
+  const identities = getPlayerIdentityMap(initialState.players);
   host.innerHTML = `
     <section class="board-frame" aria-label="臺灣環島棋盤">
       <div class="map-camera">
@@ -32,7 +29,12 @@ export function createBoardView(host: HTMLElement, initialState: GameState): Boa
               }).join('')}
             </div>
             <div class="player-tokens" aria-label="玩家棋子">
-              ${initialState.players.map((player, index) => `<div class="player-token token-${index + 1}" data-testid="player-token-${player.id}" data-player-id="${player.id}" data-position="${player.position}" aria-label="${player.name}棋子"><span>${renderPlayerTokenIcon(index)}</span><strong>P${index + 1}</strong></div>`).join('')}
+              ${initialState.players
+                .map((player, index) => {
+                  const identity = identities.get(player.id)!;
+                  return `<div class="player-token token-${index + 1} player-token-${identity.controller}" data-testid="player-token-${player.id}" data-player-id="${player.id}" data-position="${player.position}" data-identity-label="${identity.badgeLabel}" aria-label="${identity.fullLabel}棋子">${renderPlayerBadge(identity, 'board-token-badge', 'board')}</div>`;
+                })
+                .join('')}
             </div>
           </div>
         </div>

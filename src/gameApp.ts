@@ -26,6 +26,8 @@ import type { CpuDecision } from './cpu/cpuTypes';
 import { BoardCameraController } from './ui/boardCamera';
 import { DiceAnimationController } from './ui/dicePresentation';
 import { createBoardView, type BoardView } from './ui/renderBoard';
+import { getPlayerIdentityMap, renderPlayerBadge } from './ui/playerIdentity';
+import { renderProductArtwork } from './ui/productArtwork';
 import {
   getAllCollectionProgress,
   getCategoryLabel,
@@ -113,9 +115,16 @@ function gameRandom(): RandomSource {
 
 function createScenarioGame(names: string[]): GameState {
   const cpuScenario = scenario.startsWith('cpu-');
+  const identityScenario = scenario === 'phase5b1-identity' || scenario === 'phase5b1-mobile';
   const normalConfigs = names.map((name) => ({ name, controller: 'human' as const }));
-  const configs =
-    !testMode && names.length < 4
+  const configs = identityScenario
+    ? [
+        { name: '測試真人', controller: 'human' as const },
+        { name: '測試電腦1', controller: 'cpu' as const },
+        { name: '測試電腦2', controller: 'cpu' as const },
+        { name: '測試電腦3', controller: 'cpu' as const },
+      ]
+    : !testMode && names.length < 4
       ? [
           ...normalConfigs,
           ...Array.from({ length: 4 - names.length }, (_, index) => ({
@@ -151,11 +160,31 @@ function createScenarioGame(names: string[]): GameState {
     'cpu-round': 0,
     'cpu-game-over': 0,
     'cpu-restart': 0,
+    'phase5b1-identity': 0,
+    'phase5b1-mobile': 0,
+    'phase5b1-procurement': 5,
+    'phase5b1-inventory': 0,
   };
   const position = startingPositions[scenario] ?? 0;
   const inventoryByScenario: Record<string, string[]> = {
     market: ['taoyuan-rice'],
     collection: ['hsinchu-oriental-beauty-tea', 'nantou-high-mountain-tea'],
+    'phase5b1-mobile': [
+      'miaoli-strawberry',
+      'changhua-rice',
+      'new-taipei-bamboo-shoot',
+      'nantou-high-mountain-tea',
+      'tainan-milkfish',
+      'changhua-eggs',
+    ],
+    'phase5b1-inventory': [
+      'miaoli-strawberry',
+      'changhua-rice',
+      'new-taipei-bamboo-shoot',
+      'nantou-high-mountain-tea',
+      'tainan-milkfish',
+      'changhua-eggs',
+    ],
   };
   game = {
     ...game,
@@ -188,6 +217,19 @@ function createScenarioGame(names: string[]): GameState {
         ? { ...game.marketDeck, activeCardId: 'local-food-channel' }
         : game.marketDeck,
   };
+  if (scenario === 'phase5b1-procurement') {
+    game = {
+      ...game,
+      phase: 'awaiting-purchase',
+      pendingAction: {
+        kind: 'purchase',
+        tileId: 'changhua-plain',
+        productIds: ['changhua-grape', 'changhua-rice', 'changhua-eggs'],
+        source: 'production',
+      },
+      turnSummary: { title: '抵達彰化平原', lines: ['可購買0或1項產品'] },
+    };
+  }
   return game;
 }
 
@@ -203,6 +245,7 @@ function productCard(product: Product, source: PurchaseSource, game: GameState):
   const disabled = owned || insufficient || ui.locked;
   const value = getCurrentProductValue(product, game.season, activeMarketCard(game));
   return `<article class="product-choice" data-product-category="${product.category}">
+    <div class="product-artwork-wrap">${renderProductArtwork(product, 'procurement-artwork')}</div>
     <div class="product-choice-head"><div><span>${getCategoryLabel(product.category)}</span><h3>${escapeHtml(product.name)}</h3><p>${getCountyName(product.countyId)}</p></div><strong>${value}<small>目前產值</small></strong></div>
     <dl><div><dt>採購</dt><dd>${price.final}</dd></div><div><dt>基礎產值</dt><dd>${product.baseValue}</dd></div><div><dt>旺季</dt><dd>${product.peakSeasons.map(getSeasonLabel).join('、')}</dd></div></dl>
     ${source === 'farmers-association' ? `<p class="price-detail">原價 ${price.original} | 農會優惠 -${price.associationDiscount}${price.marketDiscount ? ` | 市場優惠 -${price.marketDiscount}` : ''} | 本次 ${price.final}</p>` : price.marketDiscount ? `<p class="price-detail">原價 ${price.original} | 市場優惠 -${price.marketDiscount} | 本次 ${price.final}</p>` : ''}
@@ -211,17 +254,29 @@ function productCard(product: Product, source: PurchaseSource, game: GameState):
 }
 
 function renderPlayers(game: GameState): string {
+  const identities = getPlayerIdentityMap(game.players);
   return game.players
     .map((player, index) => {
+      const identity = identities.get(player.id)!;
       const score = getPlayerEstimatedScore(player, game);
       const completed = getAllCollectionProgress(player).filter(
         ({ completed }) => completed,
       ).length;
       const tile = BOARD_TILES.find(({ position }) => position === player.position)!;
       const controllerLabel = isCpuPlayer(player) ? '電腦' : '真人';
+      const ownedProducts = getOwnedProducts(player);
+      const inventory = ownedProducts.length
+        ? `<ul class="player-inventory" aria-label="${identity.fullLabel}已持有產品">${ownedProducts
+            .map(
+              (product) =>
+                `<li>${renderProductArtwork(product, 'inventory-artwork')}<span>${escapeHtml(product.name)}</span></li>`,
+            )
+            .join('')}</ul>`
+        : '';
       return `<article class="player-status player-${index + 1} ${index === game.currentPlayerIndex ? 'is-current' : ''}" data-testid="player-card-${player.id}" data-controller="${player.controller ?? 'human'}" data-position="${player.position}" data-product-ids="${escapeHtml(player.productIds.join(','))}">
-        <div class="player-status-title"><span class="player-piece">P${index + 1}</span><h3>${escapeHtml(player.name)}</h3><span class="controller-label">${controllerLabel}</span>${index === game.currentPlayerIndex ? '<em>目前回合</em>' : ''}</div>
+        <div class="player-status-title">${renderPlayerBadge(identity, 'hud-player-badge', 'hud')}<span class="player-identity-label">${identity.badgeLabel}</span><h3>${escapeHtml(player.name)}</h3><span class="controller-label">${controllerLabel}</span>${index === game.currentPlayerIndex ? '<em>目前回合</em>' : ''}</div>
         <dl><div><dt>採購金</dt><dd data-testid="funds-${player.id}">${player.funds}</dd></div><div><dt>位置</dt><dd>${tile.shortName}</dd></div><div><dt>產品</dt><dd data-testid="product-count-${player.id}">${player.productIds.length}</dd></div><div><dt>收藏</dt><dd>${completed}</dd></div></dl>
+        ${inventory}
         <p>目前估值 <strong data-testid="score-${player.id}">${score.total}</strong></p>
       </article>`;
     })
@@ -240,6 +295,12 @@ function renderCollections(game: GameState): string {
 function renderMarket(game: GameState): string {
   const card = activeMarketCard(game);
   return `<article class="market-card" data-testid="market-card"><span>本輪市場行情</span><h3>${escapeHtml(card?.title ?? '無市場卡')}</h3><p>${escapeHtml(card?.description ?? '目前沒有市場效果。')}</p></article>`;
+}
+
+function renderCurrentPlayer(game: GameState): string {
+  const player = getCurrentPlayer(game);
+  const identity = getPlayerIdentityMap(game.players).get(player.id)!;
+  return `${renderPlayerBadge(identity, 'turn-player-badge', 'hud')}<span>${escapeHtml(player.name)}</span>`;
 }
 
 function renderActionPanel(game: GameState): string {
@@ -270,7 +331,7 @@ function renderActionPanel(game: GameState): string {
   }
   if (game.phase === 'awaiting-sale') {
     const products = getOwnedProducts(player);
-    return `<div class="action-wide"><div class="action-copy"><span>農產市場</span><h2>出售 0 或 1 項產品</h2><p>${products.length ? '出售價值已套用本季與市場卡。' : '目前沒有可出售的農產品。'}</p></div><div class="product-choice-grid">${products.map((product) => `<article class="product-choice"><div class="product-choice-head"><div><span>${getCountyName(product.countyId)}</span><h3>${escapeHtml(product.name)}</h3></div><strong>${getCurrentProductValue(product, game.season, activeMarketCard(game))}<small>出售價值</small></strong></div><button type="button" data-action="sell" data-product-id="${product.id}" ${ui.locked ? 'disabled' : ''}>出售</button></article>`).join('')}</div><button class="quiet-action" type="button" data-action="skip-sale" ${ui.locked ? 'disabled' : ''}>略過出售</button></div>`;
+    return `<div class="action-wide"><div class="action-copy"><span>農產市場</span><h2>出售 0 或 1 項產品</h2><p>${products.length ? '出售價值已套用本季與市場卡。' : '目前沒有可出售的農產品。'}</p></div><div class="product-choice-grid">${products.map((product) => `<article class="product-choice"><div class="product-artwork-wrap">${renderProductArtwork(product, 'sale-artwork')}</div><div class="product-choice-head"><div><span>${getCountyName(product.countyId)}</span><h3>${escapeHtml(product.name)}</h3></div><strong>${getCurrentProductValue(product, game.season, activeMarketCard(game))}<small>出售價值</small></strong></div><button type="button" data-action="sell" data-product-id="${product.id}" ${ui.locked ? 'disabled' : ''}>出售</button></article>`).join('')}</div><button class="quiet-action" type="button" data-action="skip-sale" ${ui.locked ? 'disabled' : ''}>略過出售</button></div>`;
   }
   if (game.phase === 'awaiting-transport' && pending?.kind === 'transport') {
     return `<div class="action-wide"><div class="action-copy"><span>離島特別行程</span><h2>選擇一個合法目的地</h2><p>離島採購完成後，主棋子仍停留在交通格。</p></div><div class="destination-grid">${pending.destinationIds
@@ -295,12 +356,16 @@ function renderActionPanel(game: GameState): string {
 
 function renderRanking(game: GameState): string {
   const rankings = game.rankings ?? [];
+  const identities = getPlayerIdentityMap(game.players);
   return `<section class="result-screen" aria-labelledby="ranking-title"><span>12 輪完成</span><h1 id="ranking-title">${rankings.filter(({ rank }) => rank === 1).length > 1 ? '共同第 1 名' : '環島冠軍'}</h1><div class="winner-name">${rankings
     .filter(({ rank }) => rank === 1)
-    .map(({ playerName }) => escapeHtml(playerName))
+    .map(
+      ({ playerId, playerName }) =>
+        `${renderPlayerBadge(identities.get(playerId)!, 'ranking-player-badge', 'ranking')}${escapeHtml(playerName)}`,
+    )
     .join(
       '、',
-    )}</div><div class="ranking-table" data-testid="rankings" role="table" aria-label="最終排名"><div class="ranking-row ranking-head" role="row"><span>名次</span><span>玩家</span><span>產品價值</span><span>收藏加成</span><span>資金換分</span><span>總分</span></div>${rankings.map((rank) => `<div class="ranking-row" role="row"><strong>${rank.rank === 1 && rankings.filter(({ rank: value }) => value === 1).length > 1 ? '共同 1' : rank.rank}</strong><span>${escapeHtml(rank.playerName)}</span><span>${rank.score.productValue}</span><span>${rank.score.collectionBonus}</span><span>${rank.score.fundsBonus}</span><strong>${rank.score.total}</strong></div>`).join('')}</div><div class="result-actions"><button class="primary-action" data-action="restart" type="button">再玩一次</button><a href="./">返回首頁</a><button class="quiet-action" data-action="open-collections" type="button">查看收藏成果</button></div></section>`;
+    )}</div><div class="ranking-table" data-testid="rankings" role="table" aria-label="最終排名"><div class="ranking-row ranking-head" role="row"><span>名次</span><span>玩家</span><span>產品價值</span><span>收藏加成</span><span>資金換分</span><span>總分</span></div>${rankings.map((rank) => `<div class="ranking-row" role="row"><strong>${rank.rank === 1 && rankings.filter(({ rank: value }) => value === 1).length > 1 ? '共同 1' : rank.rank}</strong><span class="ranking-player-name">${renderPlayerBadge(identities.get(rank.playerId)!, 'ranking-row-badge', 'ranking')}${escapeHtml(rank.playerName)}</span><span>${rank.score.productValue}</span><span>${rank.score.collectionBonus}</span><span>${rank.score.fundsBonus}</span><strong>${rank.score.total}</strong></div>`).join('')}</div><div class="result-actions"><button class="primary-action" data-action="restart" type="button">再玩一次</button><a href="./">返回首頁</a><button class="quiet-action" data-action="open-collections" type="button">查看收藏成果</button></div></section>`;
 }
 
 function renderSetup(): void {
@@ -324,7 +389,7 @@ function updateNameFields(count: number): void {
 
 function initializePlaying(game: GameState): void {
   state = game;
-  root.innerHTML = `<div class="game-shell"><header class="game-topbar"><div class="game-brand-lockup"><a class="game-logo" href="./">臺灣農產王</a><span class="game-subtitle">環島產地爭霸戰</span></div><div class="turn-status" aria-live="polite"><strong data-testid="round">第 ${game.round} / 12 輪</strong><span data-testid="season">${SEASON_SYMBOLS[game.season]} ${getSeasonLabel(game.season)}</span><span data-testid="current-player">${escapeHtml(getCurrentPlayer(game).name)}</span></div><nav><button type="button" data-action="open-rules">規則</button><button type="button" data-action="open-atlas">圖鑑</button></nav></header><main class="play-layout game-stage" data-layout="production"><section id="board-host" class="board-host" aria-label="環島遊戲棋盤"></section><aside class="players-rail players-hud" aria-label="玩家資料" data-testid="players-hud"><div class="rail-heading"><span>玩家席位</span><h2>環島採購團</h2></div><div id="players-panel" class="players-scroll"></div></aside><aside class="insight-rail stage-info-hud" aria-label="市場與收藏"><details class="market-hud" data-testid="market-hud"><summary>市場資訊</summary><div id="market-panel"></div></details><details class="collections-drawer" data-testid="collections-drawer"><summary>收藏任務 <span>12</span></summary><div id="collections-panel" class="collections-list"></div></details></aside><section id="action-panel" class="action-panel" aria-label="目前操作" data-testid="action-dock"></section></main><div id="handoff" class="handoff" aria-live="assertive" hidden></div><p id="cpu-status" class="cpu-status" aria-live="polite"></p><p id="game-error" class="game-error" role="alert"></p></div>${sharedDialogs()}`;
+  root.innerHTML = `<div class="game-shell"><header class="game-topbar"><div class="game-brand-lockup"><a class="game-logo" href="./">臺灣農產王</a><span class="game-subtitle">環島產地爭霸戰</span></div><div class="turn-status" aria-live="polite"><strong data-testid="round">第 ${game.round} / 12 輪</strong><span data-testid="season">${SEASON_SYMBOLS[game.season]} ${getSeasonLabel(game.season)}</span><span data-testid="current-player">${renderCurrentPlayer(game)}</span></div><nav><button type="button" data-action="open-rules">規則</button><button type="button" data-action="open-atlas">圖鑑</button></nav></header><main class="play-layout game-stage" data-layout="production"><section id="board-host" class="board-host" aria-label="環島遊戲棋盤"></section><aside class="players-rail players-hud" aria-label="玩家資料" data-testid="players-hud"><div class="rail-heading"><span>玩家席位</span><h2>環島採購團</h2></div><div id="players-panel" class="players-scroll"></div></aside><aside class="insight-rail stage-info-hud" aria-label="市場與收藏"><details class="market-hud" data-testid="market-hud"><summary>市場資訊</summary><div id="market-panel"></div></details><details class="collections-drawer" data-testid="collections-drawer"><summary>收藏任務 <span>12</span></summary><div id="collections-panel" class="collections-list"></div></details></aside><section id="action-panel" class="action-panel" aria-label="目前操作" data-testid="action-dock"></section></main><div id="handoff" class="handoff" aria-live="assertive" hidden></div><p id="cpu-status" class="cpu-status" aria-live="polite"></p><p id="game-error" class="game-error" role="alert"></p></div>${sharedDialogs()}`;
   const marketHud = document.querySelector<HTMLDetailsElement>('.market-hud');
   if (marketHud) marketHud.open = !window.matchMedia('(max-width: 900px)').matches;
   const host = document.querySelector<HTMLElement>('#board-host')!;
@@ -372,7 +437,7 @@ function renderDynamic(): void {
   const current = document.querySelector<HTMLElement>('[data-testid="current-player"]');
   if (round) round.textContent = `第 ${game.round} / 12 輪`;
   if (season) season.textContent = `${SEASON_SYMBOLS[game.season]} ${getSeasonLabel(game.season)}`;
-  if (current) current.textContent = getCurrentPlayer(game).name;
+  if (current) current.innerHTML = renderCurrentPlayer(game);
   const cpuStatus = document.querySelector<HTMLElement>('#cpu-status');
   if (cpuStatus)
     cpuStatus.textContent = isCpuPlayer(getCurrentPlayer(game)) ? cpuStatusMessage : '';
@@ -643,7 +708,7 @@ function renderAtlas(): void {
   grid.innerHTML = products
     .map(
       (product) =>
-        `<article><span>${getCategoryLabel(product.category)}</span><h3>${escapeHtml(product.name)}</h3><p>${getCountyName(product.countyId)}</p><small>旺季：${product.peakSeasons.map(getSeasonLabel).join('、')}</small></article>`,
+        `<article class="atlas-product-card" data-product-id="${product.id}"><div class="atlas-artwork-wrap">${renderProductArtwork(product, 'atlas-artwork')}</div><div><span>${getCategoryLabel(product.category)}</span><h3>${escapeHtml(product.name)}</h3><p>${getCountyName(product.countyId)}</p><small>旺季：${product.peakSeasons.map(getSeasonLabel).join('、')}</small></div></article>`,
     )
     .join('');
 }
@@ -708,7 +773,14 @@ root.addEventListener('click', (event) => {
 });
 
 if (testMode && scenario) {
-  const playerCount = scenario === 'multiplayer' ? 2 : scenario.startsWith('cpu-') ? 4 : 1;
+  const playerCount =
+    scenario === 'multiplayer'
+      ? 2
+      : scenario === 'phase5b1-identity' || scenario === 'phase5b1-mobile'
+        ? 4
+        : scenario.startsWith('cpu-')
+          ? 4
+          : 1;
   initializePlaying(
     createScenarioGame(Array.from({ length: playerCount }, (_, index) => `測試玩家${index + 1}`)),
   );
