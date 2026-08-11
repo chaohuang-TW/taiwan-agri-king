@@ -3,7 +3,7 @@ import { PRODUCTS } from '../src/data/products';
 import { getProductArtwork, PRODUCT_ARTWORK, renderProductArtwork } from '../src/ui/productArtwork';
 
 describe('product artwork presentation mapping', () => {
-  it('maps the six supplied samples to exact product IDs', () => {
+  it('maps all thirteen supplied samples to exact product IDs', () => {
     expect(Object.keys(PRODUCT_ARTWORK)).toEqual([
       'miaoli-strawberry',
       'changhua-rice',
@@ -11,6 +11,13 @@ describe('product artwork presentation mapping', () => {
       'nantou-high-mountain-tea',
       'tainan-milkfish',
       'changhua-eggs',
+      'new-taipei-wendan',
+      'taoyuan-persimmon',
+      'hsinchu-persimmon',
+      'taichung-pear',
+      'changhua-grape',
+      'nantou-plum',
+      'chiayi-pineapple',
     ]);
     for (const id of Object.keys(PRODUCT_ARTWORK)) {
       expect(PRODUCTS.some((product) => product.id === id)).toBe(true);
@@ -18,12 +25,12 @@ describe('product artwork presentation mapping', () => {
     }
   });
 
-  it('returns no formal artwork for products outside the six samples', () => {
-    expect(getProductArtwork('taoyuan-persimmon')).toBeNull();
+  it('returns no formal artwork for products outside the thirteen samples', () => {
+    expect(getProductArtwork('pingtung-pineapple')).toBeNull();
   });
 
   it('renders no placeholder markup when a product has no supplied artwork', () => {
-    const product = PRODUCTS.find(({ id }) => id === 'changhua-grape')!;
+    const product = PRODUCTS.find(({ id }) => id === 'pingtung-pineapple')!;
 
     expect(renderProductArtwork(product)).toBe('');
   });

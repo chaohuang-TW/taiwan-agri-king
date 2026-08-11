@@ -6,6 +6,13 @@ import bambooShootUrl from '../assets/products/new-taipei-bamboo-shoot.png';
 import teaUrl from '../assets/products/nantou-high-mountain-tea.png';
 import fishUrl from '../assets/products/tainan-milkfish.png';
 import eggsUrl from '../assets/products/changhua-eggs.png';
+import wendanUrl from '../assets/products/new-taipei-wendan.png';
+import taoyuanPersimmonUrl from '../assets/products/taoyuan-persimmon.png';
+import hsinchuPersimmonUrl from '../assets/products/hsinchu-persimmon.png';
+import pearUrl from '../assets/products/taichung-pear.png';
+import grapeUrl from '../assets/products/changhua-grape.png';
+import plumUrl from '../assets/products/nantou-plum.png';
+import pineappleUrl from '../assets/products/chiayi-pineapple.png';
 
 export interface ProductArtwork {
   productId: string;
@@ -43,6 +50,41 @@ export const PRODUCT_ARTWORK: Readonly<Record<string, ProductArtwork>> = {
     productId: 'changhua-eggs',
     assetUrl: eggsUrl,
     alt: '雞蛋產品圖',
+  },
+  'new-taipei-wendan': {
+    productId: 'new-taipei-wendan',
+    assetUrl: wendanUrl,
+    alt: '文旦柚產品圖',
+  },
+  'taoyuan-persimmon': {
+    productId: 'taoyuan-persimmon',
+    assetUrl: taoyuanPersimmonUrl,
+    alt: '甜柿產品圖',
+  },
+  'hsinchu-persimmon': {
+    productId: 'hsinchu-persimmon',
+    assetUrl: hsinchuPersimmonUrl,
+    alt: '柿餅用柿產品圖',
+  },
+  'taichung-pear': {
+    productId: 'taichung-pear',
+    assetUrl: pearUrl,
+    alt: '高接梨產品圖',
+  },
+  'changhua-grape': {
+    productId: 'changhua-grape',
+    assetUrl: grapeUrl,
+    alt: '葡萄產品圖',
+  },
+  'nantou-plum': {
+    productId: 'nantou-plum',
+    assetUrl: plumUrl,
+    alt: '青梅產品圖',
+  },
+  'chiayi-pineapple': {
+    productId: 'chiayi-pineapple',
+    assetUrl: pineappleUrl,
+    alt: '嘉義鳳梨產品圖',
   },
 };
 

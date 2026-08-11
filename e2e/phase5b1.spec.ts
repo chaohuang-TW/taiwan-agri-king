@@ -85,9 +85,9 @@ test('Phase 5B-1 procurement cards show supplied product samples', async ({ page
   const riceCard = productCards.filter({ has: page.getByRole('heading', { name: '彰化稻米' }) });
   const eggCard = productCards.filter({ has: page.getByRole('heading', { name: '雞蛋' }) });
   await expect(productCards).toHaveCount(3);
-  await expect(productCards.locator('[data-product-artwork]')).toHaveCount(2);
-  await expect(grapeCard.locator('[data-product-artwork]')).toHaveCount(0);
-  await expect(grapeCard.locator('.product-artwork-wrap')).toHaveCount(0);
+  await expect(productCards.locator('[data-product-artwork]')).toHaveCount(3);
+  await expect(grapeCard.locator('[data-product-artwork]')).toHaveCount(1);
+  await expect(grapeCard.locator('.product-artwork-wrap')).toHaveCount(1);
   await expect(riceCard.locator('[data-product-artwork]')).toHaveCount(1);
   await expect(eggCard.locator('[data-product-artwork]')).toHaveCount(1);
   await expect(page.getByText('未提供圖片')).toHaveCount(0);
@@ -105,9 +105,9 @@ test('Phase 5B-1 inventory and atlas show artwork only where supplied', async ({
   await page.getByRole('button', { name: '圖鑑', exact: true }).click();
   const atlas = page.getByRole('dialog', { name: '農產圖鑑' });
   await expect(atlas).toBeVisible();
-  await expect(atlas.locator('[data-product-artwork]')).toHaveCount(6);
-  await expect(atlas.locator('.atlas-artwork-wrap')).toHaveCount(6);
-  await expect(atlas.locator('.atlas-product-card.no-artwork')).toHaveCount(42);
+  await expect(atlas.locator('[data-product-artwork]')).toHaveCount(13);
+  await expect(atlas.locator('.atlas-artwork-wrap')).toHaveCount(13);
+  await expect(atlas.locator('.atlas-product-card.no-artwork')).toHaveCount(35);
   await expect(atlas.getByText('未提供圖片')).toHaveCount(0);
   await page.screenshot({ path: 'qa/phase5b1/desktop-1280-inventory-and-atlas.png' });
   await expectHealthy(page, diagnostics);
