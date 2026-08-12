@@ -13,6 +13,13 @@ import pearUrl from '../assets/products/taichung-pear.png';
 import grapeUrl from '../assets/products/changhua-grape.png';
 import plumUrl from '../assets/products/nantou-plum.png';
 import pineappleUrl from '../assets/products/chiayi-pineapple.png';
+import mangoUrl from '../assets/products/tainan-mango.png';
+import jujubeUrl from '../assets/products/kaohsiung-jujube.png';
+import pingtungPineappleUrl from '../assets/products/pingtung-pineapple.png';
+import custardAppleUrl from '../assets/products/taitung-custard-apple.png';
+import taoyuanRiceUrl from '../assets/products/taoyuan-rice.png';
+import taroUrl from '../assets/products/miaoli-taro.png';
+import peanutUrl from '../assets/products/yunlin-peanut.png';
 
 export interface ProductArtwork {
   productId: string;
@@ -85,6 +92,41 @@ export const PRODUCT_ARTWORK: Readonly<Record<string, ProductArtwork>> = {
     productId: 'chiayi-pineapple',
     assetUrl: pineappleUrl,
     alt: '嘉義鳳梨產品圖',
+  },
+  'tainan-mango': {
+    productId: 'tainan-mango',
+    assetUrl: mangoUrl,
+    alt: '芒果產品圖',
+  },
+  'kaohsiung-jujube': {
+    productId: 'kaohsiung-jujube',
+    assetUrl: jujubeUrl,
+    alt: '蜜棗產品圖',
+  },
+  'pingtung-pineapple': {
+    productId: 'pingtung-pineapple',
+    assetUrl: pingtungPineappleUrl,
+    alt: '屏東鳳梨產品圖',
+  },
+  'taitung-custard-apple': {
+    productId: 'taitung-custard-apple',
+    assetUrl: custardAppleUrl,
+    alt: '釋迦產品圖',
+  },
+  'taoyuan-rice': {
+    productId: 'taoyuan-rice',
+    assetUrl: taoyuanRiceUrl,
+    alt: '桃園稻米產品圖',
+  },
+  'miaoli-taro': {
+    productId: 'miaoli-taro',
+    assetUrl: taroUrl,
+    alt: '芋頭產品圖',
+  },
+  'yunlin-peanut': {
+    productId: 'yunlin-peanut',
+    assetUrl: peanutUrl,
+    alt: '花生產品圖',
   },
 };
 
