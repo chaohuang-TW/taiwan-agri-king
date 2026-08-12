@@ -34,6 +34,13 @@ import tieguanyinUrl from '../assets/products/taipei-tieguanyin.png';
 import baozhongTeaUrl from '../assets/products/new-taipei-baozhong-tea.png';
 import orientalBeautyTeaUrl from '../assets/products/hsinchu-oriental-beauty-tea.png';
 import coffeeUrl from '../assets/products/chiayi-coffee.png';
+import daylilyUrl from '../assets/products/hualien-daylily.png';
+import roselleUrl from '../assets/products/taitung-roselle.png';
+import squidUrl from '../assets/products/keelung-squid.png';
+import flowerCrabUrl from '../assets/products/new-taipei-flower-crab.png';
+import clamUrl from '../assets/products/changhua-clam.png';
+import oysterUrl from '../assets/products/chiayi-oyster.png';
+import grouperUrl from '../assets/products/kaohsiung-grouper.png';
 
 export interface ProductArtwork {
   productId: string;
@@ -211,6 +218,41 @@ export const PRODUCT_ARTWORK: Readonly<Record<string, ProductArtwork>> = {
     productId: 'chiayi-coffee',
     assetUrl: coffeeUrl,
     alt: '阿里山咖啡產品圖',
+  },
+  'hualien-daylily': {
+    productId: 'hualien-daylily',
+    assetUrl: daylilyUrl,
+    alt: '金針產品圖',
+  },
+  'taitung-roselle': {
+    productId: 'taitung-roselle',
+    assetUrl: roselleUrl,
+    alt: '洛神葵產品圖',
+  },
+  'keelung-squid': {
+    productId: 'keelung-squid',
+    assetUrl: squidUrl,
+    alt: '鎖管產品圖',
+  },
+  'new-taipei-flower-crab': {
+    productId: 'new-taipei-flower-crab',
+    assetUrl: flowerCrabUrl,
+    alt: '花蟹產品圖',
+  },
+  'changhua-clam': {
+    productId: 'changhua-clam',
+    assetUrl: clamUrl,
+    alt: '文蛤產品圖',
+  },
+  'chiayi-oyster': {
+    productId: 'chiayi-oyster',
+    assetUrl: oysterUrl,
+    alt: '牡蠣產品圖',
+  },
+  'kaohsiung-grouper': {
+    productId: 'kaohsiung-grouper',
+    assetUrl: grouperUrl,
+    alt: '石斑魚產品圖',
   },
 };
 
