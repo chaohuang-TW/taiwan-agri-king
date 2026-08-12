@@ -105,9 +105,9 @@ test('Phase 5B-1 inventory and atlas show artwork only where supplied', async ({
   await page.getByRole('button', { name: '圖鑑', exact: true }).click();
   const atlas = page.getByRole('dialog', { name: '農產圖鑑' });
   await expect(atlas).toBeVisible();
-  await expect(atlas.locator('[data-product-artwork]')).toHaveCount(34);
-  await expect(atlas.locator('.atlas-artwork-wrap')).toHaveCount(34);
-  await expect(atlas.locator('.atlas-product-card.no-artwork')).toHaveCount(14);
+  await expect(atlas.locator('[data-product-artwork]')).toHaveCount(41);
+  await expect(atlas.locator('.atlas-artwork-wrap')).toHaveCount(41);
+  await expect(atlas.locator('.atlas-product-card.no-artwork')).toHaveCount(7);
   await expect(atlas.getByText('未提供圖片')).toHaveCount(0);
   await page.screenshot({ path: 'qa/phase5b1/desktop-1280-inventory-and-atlas.png' });
   await expectHealthy(page, diagnostics);

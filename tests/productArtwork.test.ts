@@ -3,7 +3,7 @@ import { PRODUCTS } from '../src/data/products';
 import { getProductArtwork, PRODUCT_ARTWORK, renderProductArtwork } from '../src/ui/productArtwork';
 
 describe('product artwork presentation mapping', () => {
-  it('maps all thirty-four supplied samples to exact product IDs', () => {
+  it('maps all forty-one supplied samples to exact product IDs', () => {
     expect(Object.keys(PRODUCT_ARTWORK)).toEqual([
       'miaoli-strawberry',
       'changhua-rice',
@@ -39,6 +39,13 @@ describe('product artwork presentation mapping', () => {
       'new-taipei-baozhong-tea',
       'hsinchu-oriental-beauty-tea',
       'chiayi-coffee',
+      'hualien-daylily',
+      'taitung-roselle',
+      'keelung-squid',
+      'new-taipei-flower-crab',
+      'changhua-clam',
+      'chiayi-oyster',
+      'kaohsiung-grouper',
     ]);
     for (const id of Object.keys(PRODUCT_ARTWORK)) {
       expect(PRODUCTS.some((product) => product.id === id)).toBe(true);
@@ -75,12 +82,42 @@ describe('product artwork presentation mapping', () => {
     expect(chiayiPineapple?.assetUrl).not.toBe(pingtungPineapple?.assetUrl);
   });
 
-  it('returns no formal artwork for products outside the thirty-four samples', () => {
-    expect(getProductArtwork('hualien-daylily')).toBeNull();
+  it('maps every sixth batch product ID to formal artwork', () => {
+    const sixthBatchIds = [
+      'hualien-daylily',
+      'taitung-roselle',
+      'keelung-squid',
+      'new-taipei-flower-crab',
+      'changhua-clam',
+      'chiayi-oyster',
+      'kaohsiung-grouper',
+    ];
+
+    for (const id of sixthBatchIds) {
+      expect(getProductArtwork(id)).not.toBeNull();
+    }
+  });
+
+  it('keeps supplied seafood samples mapped to distinct assets', () => {
+    const seafoodIds = [
+      'keelung-squid',
+      'new-taipei-flower-crab',
+      'changhua-clam',
+      'chiayi-oyster',
+      'kaohsiung-grouper',
+    ];
+    const seafoodArtwork = seafoodIds.map((id) => getProductArtwork(id));
+
+    expect(seafoodArtwork).not.toContain(null);
+    expect(new Set(seafoodArtwork.map((artwork) => artwork?.assetUrl)).size).toBe(5);
+  });
+
+  it('returns no formal artwork for products outside the forty-one samples', () => {
+    expect(getProductArtwork('pingtung-bluefin-tuna')).toBeNull();
   });
 
   it('renders no placeholder markup when a product has no supplied artwork', () => {
-    const product = PRODUCTS.find(({ id }) => id === 'hualien-daylily')!;
+    const product = PRODUCTS.find(({ id }) => id === 'pingtung-bluefin-tuna')!;
 
     expect(renderProductArtwork(product)).toBe('');
   });
