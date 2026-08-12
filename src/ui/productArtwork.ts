@@ -41,6 +41,13 @@ import flowerCrabUrl from '../assets/products/new-taipei-flower-crab.png';
 import clamUrl from '../assets/products/changhua-clam.png';
 import oysterUrl from '../assets/products/chiayi-oyster.png';
 import grouperUrl from '../assets/products/kaohsiung-grouper.png';
+import bluefinTunaUrl from '../assets/products/pingtung-bluefin-tuna.png';
+import mackerelUrl from '../assets/products/yilan-mackerel.png';
+import cobiaUrl from '../assets/products/penghu-cobia.png';
+import chickenUrl from '../assets/products/taoyuan-chicken.png';
+import porkUrl from '../assets/products/yunlin-pork.png';
+import beefUrl from '../assets/products/kinmen-beef.png';
+import redYeastUrl from '../assets/products/lienchiang-red-yeast.png';
 
 export interface ProductArtwork {
   productId: string;
@@ -253,6 +260,41 @@ export const PRODUCT_ARTWORK: Readonly<Record<string, ProductArtwork>> = {
     productId: 'kaohsiung-grouper',
     assetUrl: grouperUrl,
     alt: '石斑魚產品圖',
+  },
+  'pingtung-bluefin-tuna': {
+    productId: 'pingtung-bluefin-tuna',
+    assetUrl: bluefinTunaUrl,
+    alt: '黑鮪魚產品圖',
+  },
+  'yilan-mackerel': {
+    productId: 'yilan-mackerel',
+    assetUrl: mackerelUrl,
+    alt: '鯖魚產品圖',
+  },
+  'penghu-cobia': {
+    productId: 'penghu-cobia',
+    assetUrl: cobiaUrl,
+    alt: '海鱺產品圖',
+  },
+  'taoyuan-chicken': {
+    productId: 'taoyuan-chicken',
+    assetUrl: chickenUrl,
+    alt: '土雞產品圖',
+  },
+  'yunlin-pork': {
+    productId: 'yunlin-pork',
+    assetUrl: porkUrl,
+    alt: '豬肉產品圖',
+  },
+  'kinmen-beef': {
+    productId: 'kinmen-beef',
+    assetUrl: beefUrl,
+    alt: '牛肉產品圖',
+  },
+  'lienchiang-red-yeast': {
+    productId: 'lienchiang-red-yeast',
+    assetUrl: redYeastUrl,
+    alt: '紅麴產品圖',
   },
 };
 
