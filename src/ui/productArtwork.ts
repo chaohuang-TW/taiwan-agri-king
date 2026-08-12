@@ -27,6 +27,13 @@ import milletUrl from '../assets/products/taitung-millet.png';
 import mushroomUrl from '../assets/products/taichung-mushroom.png';
 import cabbageUrl from '../assets/products/yunlin-cabbage.png';
 import sweetCornUrl from '../assets/products/chiayi-sweet-corn.png';
+import carrotUrl from '../assets/products/tainan-carrot.png';
+import onionUrl from '../assets/products/pingtung-onion.png';
+import scallionUrl from '../assets/products/yilan-scallion.png';
+import tieguanyinUrl from '../assets/products/taipei-tieguanyin.png';
+import baozhongTeaUrl from '../assets/products/new-taipei-baozhong-tea.png';
+import orientalBeautyTeaUrl from '../assets/products/hsinchu-oriental-beauty-tea.png';
+import coffeeUrl from '../assets/products/chiayi-coffee.png';
 
 export interface ProductArtwork {
   productId: string;
@@ -169,6 +176,41 @@ export const PRODUCT_ARTWORK: Readonly<Record<string, ProductArtwork>> = {
     productId: 'chiayi-sweet-corn',
     assetUrl: sweetCornUrl,
     alt: '甜玉米產品圖',
+  },
+  'tainan-carrot': {
+    productId: 'tainan-carrot',
+    assetUrl: carrotUrl,
+    alt: '胡蘿蔔產品圖',
+  },
+  'pingtung-onion': {
+    productId: 'pingtung-onion',
+    assetUrl: onionUrl,
+    alt: '洋蔥產品圖',
+  },
+  'yilan-scallion': {
+    productId: 'yilan-scallion',
+    assetUrl: scallionUrl,
+    alt: '三星蔥產品圖',
+  },
+  'taipei-tieguanyin': {
+    productId: 'taipei-tieguanyin',
+    assetUrl: tieguanyinUrl,
+    alt: '木柵鐵觀音產品圖',
+  },
+  'new-taipei-baozhong-tea': {
+    productId: 'new-taipei-baozhong-tea',
+    assetUrl: baozhongTeaUrl,
+    alt: '文山包種茶產品圖',
+  },
+  'hsinchu-oriental-beauty-tea': {
+    productId: 'hsinchu-oriental-beauty-tea',
+    assetUrl: orientalBeautyTeaUrl,
+    alt: '東方美人茶產品圖',
+  },
+  'chiayi-coffee': {
+    productId: 'chiayi-coffee',
+    assetUrl: coffeeUrl,
+    alt: '阿里山咖啡產品圖',
   },
 };
 
