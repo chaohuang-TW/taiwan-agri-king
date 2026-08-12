@@ -3,7 +3,7 @@ import { PRODUCTS } from '../src/data/products';
 import { getProductArtwork, PRODUCT_ARTWORK, renderProductArtwork } from '../src/ui/productArtwork';
 
 describe('product artwork presentation mapping', () => {
-  it('maps all forty-one supplied samples to exact product IDs', () => {
+  it('maps all forty-eight supplied samples to exact product IDs', () => {
     expect(Object.keys(PRODUCT_ARTWORK)).toEqual([
       'miaoli-strawberry',
       'changhua-rice',
@@ -46,6 +46,13 @@ describe('product artwork presentation mapping', () => {
       'changhua-clam',
       'chiayi-oyster',
       'kaohsiung-grouper',
+      'pingtung-bluefin-tuna',
+      'yilan-mackerel',
+      'penghu-cobia',
+      'taoyuan-chicken',
+      'yunlin-pork',
+      'kinmen-beef',
+      'lienchiang-red-yeast',
     ]);
     for (const id of Object.keys(PRODUCT_ARTWORK)) {
       expect(PRODUCTS.some((product) => product.id === id)).toBe(true);
@@ -112,13 +119,51 @@ describe('product artwork presentation mapping', () => {
     expect(new Set(seafoodArtwork.map((artwork) => artwork?.assetUrl)).size).toBe(5);
   });
 
-  it('returns no formal artwork for products outside the forty-one samples', () => {
-    expect(getProductArtwork('pingtung-bluefin-tuna')).toBeNull();
+  it('maps every final batch product ID to formal artwork', () => {
+    const finalBatchIds = [
+      'pingtung-bluefin-tuna',
+      'yilan-mackerel',
+      'penghu-cobia',
+      'taoyuan-chicken',
+      'yunlin-pork',
+      'kinmen-beef',
+      'lienchiang-red-yeast',
+    ];
+
+    for (const id of finalBatchIds) {
+      expect(getProductArtwork(id)).not.toBeNull();
+    }
   });
 
-  it('renders no placeholder markup when a product has no supplied artwork', () => {
-    const product = PRODUCTS.find(({ id }) => id === 'pingtung-bluefin-tuna')!;
+  it('maps every formal product to an artwork with no text-only fallback', () => {
+    expect(PRODUCTS).toHaveLength(48);
+    expect(Object.keys(PRODUCT_ARTWORK)).toHaveLength(48);
 
-    expect(renderProductArtwork(product)).toBe('');
+    for (const product of PRODUCTS) {
+      expect(getProductArtwork(product.id)).not.toBeNull();
+      expect(renderProductArtwork(product)).toContain('data-product-artwork');
+    }
+  });
+
+  it('keeps all fish product IDs mapped to distinct supplied assets', () => {
+    const fishIds = [
+      'tainan-milkfish',
+      'kaohsiung-grouper',
+      'pingtung-bluefin-tuna',
+      'yilan-mackerel',
+      'penghu-cobia',
+    ];
+    const fishArtwork = fishIds.map((id) => getProductArtwork(id));
+
+    expect(fishArtwork).not.toContain(null);
+    expect(new Set(fishArtwork.map((artwork) => artwork?.assetUrl)).size).toBe(5);
+  });
+
+  it('keeps all livestock product IDs mapped to distinct supplied assets', () => {
+    const livestockIds = ['taoyuan-chicken', 'changhua-eggs', 'yunlin-pork', 'kinmen-beef'];
+    const livestockArtwork = livestockIds.map((id) => getProductArtwork(id));
+
+    expect(livestockArtwork).not.toContain(null);
+    expect(new Set(livestockArtwork.map((artwork) => artwork?.assetUrl)).size).toBe(4);
   });
 });
