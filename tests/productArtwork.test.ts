@@ -3,7 +3,7 @@ import { PRODUCTS } from '../src/data/products';
 import { getProductArtwork, PRODUCT_ARTWORK, renderProductArtwork } from '../src/ui/productArtwork';
 
 describe('product artwork presentation mapping', () => {
-  it('maps all twenty-seven supplied samples to exact product IDs', () => {
+  it('maps all thirty-four supplied samples to exact product IDs', () => {
     expect(Object.keys(PRODUCT_ARTWORK)).toEqual([
       'miaoli-strawberry',
       'changhua-rice',
@@ -32,11 +32,29 @@ describe('product artwork presentation mapping', () => {
       'taichung-mushroom',
       'yunlin-cabbage',
       'chiayi-sweet-corn',
+      'tainan-carrot',
+      'pingtung-onion',
+      'yilan-scallion',
+      'taipei-tieguanyin',
+      'new-taipei-baozhong-tea',
+      'hsinchu-oriental-beauty-tea',
+      'chiayi-coffee',
     ]);
     for (const id of Object.keys(PRODUCT_ARTWORK)) {
       expect(PRODUCTS.some((product) => product.id === id)).toBe(true);
       expect(getProductArtwork(id)?.assetUrl).toMatch(/\.png$/);
     }
+  });
+
+  it('keeps the three tea product IDs mapped to distinct supplied assets', () => {
+    const teaArtwork = [
+      'taipei-tieguanyin',
+      'new-taipei-baozhong-tea',
+      'hsinchu-oriental-beauty-tea',
+    ].map((id) => getProductArtwork(id));
+
+    expect(teaArtwork).not.toContain(null);
+    expect(new Set(teaArtwork.map((artwork) => artwork?.assetUrl)).size).toBe(3);
   });
 
   it('keeps all four rice product IDs mapped to distinct supplied assets', () => {
@@ -57,12 +75,12 @@ describe('product artwork presentation mapping', () => {
     expect(chiayiPineapple?.assetUrl).not.toBe(pingtungPineapple?.assetUrl);
   });
 
-  it('returns no formal artwork for products outside the twenty-seven samples', () => {
-    expect(getProductArtwork('tainan-carrot')).toBeNull();
+  it('returns no formal artwork for products outside the thirty-four samples', () => {
+    expect(getProductArtwork('hualien-daylily')).toBeNull();
   });
 
   it('renders no placeholder markup when a product has no supplied artwork', () => {
-    const product = PRODUCTS.find(({ id }) => id === 'tainan-carrot')!;
+    const product = PRODUCTS.find(({ id }) => id === 'hualien-daylily')!;
 
     expect(renderProductArtwork(product)).toBe('');
   });
