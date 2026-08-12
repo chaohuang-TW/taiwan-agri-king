@@ -20,6 +20,13 @@ import custardAppleUrl from '../assets/products/taitung-custard-apple.png';
 import taoyuanRiceUrl from '../assets/products/taoyuan-rice.png';
 import taroUrl from '../assets/products/miaoli-taro.png';
 import peanutUrl from '../assets/products/yunlin-peanut.png';
+import chiayiRiceUrl from '../assets/products/chiayi-rice.png';
+import edamameUrl from '../assets/products/kaohsiung-edamame.png';
+import hualienRiceUrl from '../assets/products/hualien-rice.png';
+import milletUrl from '../assets/products/taitung-millet.png';
+import mushroomUrl from '../assets/products/taichung-mushroom.png';
+import cabbageUrl from '../assets/products/yunlin-cabbage.png';
+import sweetCornUrl from '../assets/products/chiayi-sweet-corn.png';
 
 export interface ProductArtwork {
   productId: string;
@@ -127,6 +134,41 @@ export const PRODUCT_ARTWORK: Readonly<Record<string, ProductArtwork>> = {
     productId: 'yunlin-peanut',
     assetUrl: peanutUrl,
     alt: '花生產品圖',
+  },
+  'chiayi-rice': {
+    productId: 'chiayi-rice',
+    assetUrl: chiayiRiceUrl,
+    alt: '嘉義稻米產品圖',
+  },
+  'kaohsiung-edamame': {
+    productId: 'kaohsiung-edamame',
+    assetUrl: edamameUrl,
+    alt: '毛豆產品圖',
+  },
+  'hualien-rice': {
+    productId: 'hualien-rice',
+    assetUrl: hualienRiceUrl,
+    alt: '花蓮稻米產品圖',
+  },
+  'taitung-millet': {
+    productId: 'taitung-millet',
+    assetUrl: milletUrl,
+    alt: '小米產品圖',
+  },
+  'taichung-mushroom': {
+    productId: 'taichung-mushroom',
+    assetUrl: mushroomUrl,
+    alt: '香菇產品圖',
+  },
+  'yunlin-cabbage': {
+    productId: 'yunlin-cabbage',
+    assetUrl: cabbageUrl,
+    alt: '高麗菜產品圖',
+  },
+  'chiayi-sweet-corn': {
+    productId: 'chiayi-sweet-corn',
+    assetUrl: sweetCornUrl,
+    alt: '甜玉米產品圖',
   },
 };
 
