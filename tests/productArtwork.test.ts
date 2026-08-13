@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { PRODUCTS } from '../src/data/products';
 import { getProductArtwork, PRODUCT_ARTWORK, renderProductArtwork } from '../src/ui/productArtwork';
 
@@ -56,7 +57,7 @@ describe('product artwork presentation mapping', () => {
     ]);
     for (const id of Object.keys(PRODUCT_ARTWORK)) {
       expect(PRODUCTS.some((product) => product.id === id)).toBe(true);
-      expect(getProductArtwork(id)?.assetUrl).toMatch(/\.png$/);
+      expect(getProductArtwork(id)?.assetUrl).toMatch(/\.webp$/);
     }
   });
 
@@ -143,6 +144,19 @@ describe('product artwork presentation mapping', () => {
       expect(getProductArtwork(product.id)).not.toBeNull();
       expect(renderProductArtwork(product)).toContain('data-product-artwork');
     }
+  });
+
+  it('uses only WebP assets in the production artwork registry', () => {
+    const registrySource = readFileSync(
+      new URL('../src/ui/productArtwork.ts', import.meta.url),
+      'utf8',
+    );
+
+    expect(registrySource).not.toMatch(/assets\/products\/[^'"\n]+\.png/);
+    expect(Object.values(PRODUCT_ARTWORK)).toHaveLength(48);
+    expect(
+      Object.values(PRODUCT_ARTWORK).every((artwork) => artwork.assetUrl.endsWith('.webp')),
+    ).toBe(true);
   });
 
   it('keeps all fish product IDs mapped to distinct supplied assets', () => {

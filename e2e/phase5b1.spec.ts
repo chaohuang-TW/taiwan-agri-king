@@ -107,6 +107,15 @@ test('Phase 5B-1 inventory and atlas show formal artwork for every product', asy
   await expect(atlas).toBeVisible();
   await expect(atlas.locator('[data-product-artwork]')).toHaveCount(48);
   await expect(atlas.locator('.atlas-artwork-wrap')).toHaveCount(48);
+  const artworkUrls = await atlas
+    .locator('[data-product-artwork]')
+    .evaluateAll((images) =>
+      images.map(
+        (image) => (image as HTMLImageElement).currentSrc || (image as HTMLImageElement).src,
+      ),
+    );
+  expect(artworkUrls).toHaveLength(48);
+  expect(artworkUrls.every((url) => url.endsWith('.webp'))).toBe(true);
   await expect(atlas.locator('.atlas-product-card.no-artwork')).toHaveCount(0);
   await expect(atlas.getByText('未提供圖片')).toHaveCount(0);
   await page.screenshot({ path: 'qa/phase5b1/desktop-1280-inventory-and-atlas.png' });
