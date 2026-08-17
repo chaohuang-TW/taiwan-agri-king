@@ -717,6 +717,20 @@ test('擲骰逐格移動、Camera實際跟拍並保持棋子可見', async ({ pa
   await expectPageHealthy(page, diagnostics);
 });
 
+test('完成環島經過臺北起點可在抵達後立即使用獎勵', async ({ page }) => {
+  const diagnostics = observePage(page);
+  await page.goto('game.html?testMode=1&scenario=lap-reward');
+  await page.getByRole('button', { name: '擲骰子' }).click();
+  await waitForAction(page, '產地採購');
+  await expect(page.getByTestId('funds-player-1')).toHaveText('20');
+  await expect(page.getByTestId('player-token-player-1')).toHaveAttribute('data-position', '1');
+  await expect(page.getByRole('button', { name: /採購 2/ }).first()).toBeEnabled();
+  await page.getByRole('button', { name: '略過採購' }).click();
+  await waitForAction(page, '回合摘要');
+  await expect(page.getByText('完成環島一圈！獲得5採購金', { exact: true })).toBeVisible();
+  await expectPageHealthy(page, diagnostics);
+});
+
 test('產地採購會扣款、加入產品並顯示回合摘要', async ({ page }) => {
   await page.goto('game.html?testMode=1&scenario=purchase');
   await page.getByRole('button', { name: '擲骰子' }).click();

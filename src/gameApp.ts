@@ -106,6 +106,7 @@ function cleanupUiLifecycle(): void {
 
 function getScenarioRandom(): RandomSource {
   if (scenario === 'movement' || scenario === 'cpu-camera') return () => 0.5;
+  if (scenario === 'lap-reward') return () => 0.4;
   return () => 0;
 }
 
@@ -144,6 +145,7 @@ function createScenarioGame(names: string[]): GameState {
   if (!testMode) return game;
   const startingPositions: Record<string, number> = {
     movement: 23,
+    'lap-reward': 25,
     purchase: 0,
     farmers: 2,
     fishers: 11,
@@ -382,7 +384,7 @@ function renderSetup(): void {
 }
 
 function sharedDialogs(): string {
-  return `<dialog id="rules-dialog" aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">遊戲規則</h2><button type="button" data-action="close-dialog" aria-label="關閉遊戲規則">關閉</button></div><div class="rules-grid"><article><strong>目標</strong><p>12 輪後，以產品價值、收藏加成與資金換分合計最高者獲勝。</p></article><article><strong>四季</strong><p>每 3 輪更換季節，旺季產品的價值會提高。</p></article><article><strong>採購</strong><p>抵達產地、農會或漁會時，可購買 0 或 1 項產品。</p></article><article><strong>市場</strong><p>抵達市場可出售 0 或 1 項；市場卡會影響價值與成本。</p></article><article><strong>收藏</strong><p>12 項任務全部公開，完成條件可獲得額外產值。</p></article><article><strong>離島</strong><p>交通格可前往合法離島採購，主棋子仍停在原交通格。</p></article></div></dialog><dialog id="atlas-dialog" aria-labelledby="atlas-title"><div class="dialog-head"><h2 id="atlas-title">農產圖鑑</h2><button type="button" data-action="close-dialog" aria-label="關閉農產圖鑑">關閉</button></div><div class="atlas-controls"><label>依類別<select id="atlas-category"><option value="all">全部類別</option>${[...new Set(PRODUCTS.map(({ category }) => category))].map((category) => `<option value="${category}">${getCategoryLabel(category)}</option>`).join('')}</select></label><label>依縣市<select id="atlas-county"><option value="all">全部縣市</option>${[...new Set(PRODUCTS.map(({ countyId }) => countyId))].map((countyId) => `<option value="${countyId}">${getCountyName(countyId)}</option>`).join('')}</select></label></div><div id="atlas-grid" class="atlas-grid"></div></dialog>`;
+  return `<dialog id="rules-dialog" aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">遊戲規則</h2><button type="button" data-action="close-dialog" aria-label="關閉遊戲規則">關閉</button></div><div class="rules-grid"><article><strong>目標</strong><p>12 輪後，以產品價值、收藏加成與資金換分合計最高者獲勝。</p></article><article><strong>四季</strong><p>每 3 輪更換季節，旺季產品的價值會提高。</p></article><article><strong>採購</strong><p>抵達產地、農會或漁會時，可購買 0 或 1 項產品。</p></article><article><strong>環島獎勵</strong><p>正常移動路徑經過臺北環島起點（position 0），完成一圈獲得5採購金；不必剛好停在起點，且從起點出發不會立即獲獎。</p></article><article><strong>市場</strong><p>抵達市場可出售 0 或 1 項；市場卡會影響價值與成本。</p></article><article><strong>收藏</strong><p>12 項任務全部公開，完成條件可獲得額外產值。</p></article><article><strong>離島</strong><p>交通格可前往合法離島採購，主棋子仍停在原交通格。</p></article></div></dialog><dialog id="atlas-dialog" aria-labelledby="atlas-title"><div class="dialog-head"><h2 id="atlas-title">農產圖鑑</h2><button type="button" data-action="close-dialog" aria-label="關閉農產圖鑑">關閉</button></div><div class="atlas-controls"><label>依類別<select id="atlas-category"><option value="all">全部類別</option>${[...new Set(PRODUCTS.map(({ category }) => category))].map((category) => `<option value="${category}">${getCategoryLabel(category)}</option>`).join('')}</select></label><label>依縣市<select id="atlas-county"><option value="all">全部縣市</option>${[...new Set(PRODUCTS.map(({ countyId }) => countyId))].map((countyId) => `<option value="${countyId}">${getCountyName(countyId)}</option>`).join('')}</select></label></div><div id="atlas-grid" class="atlas-grid"></div></dialog>`;
 }
 
 function updateNameFields(count: number): void {
