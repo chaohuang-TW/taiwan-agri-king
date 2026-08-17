@@ -14,6 +14,7 @@ export function createMovement(startPosition: number, dice: number): MovementPre
     startPosition,
     dice,
     path,
+    crossedStart: path.includes(0),
     stepIndex: 0,
     destinationPosition: path.at(-1)!,
   };

@@ -1,5 +1,5 @@
 import { SEASON_BY_ROUND } from '../data/seasons';
-import { STARTING_FUNDS, TOTAL_ROUNDS } from './constants';
+import { LAP_COMPLETION_REWARD, STARTING_FUNDS, TOTAL_ROUNDS } from './constants';
 import {
   createMarketDeck,
   getCurrentProductValue,
@@ -69,6 +69,12 @@ function getPurchasePending(state: GameState): Extract<PendingAction, { kind: 'p
   return pending;
 }
 
+function getLapRewardLines(state: GameState): string[] {
+  return (state.turnSummary?.lines ?? []).filter(
+    (line) => line.startsWith('完成環島一圈！') || line.startsWith('目前採購金'),
+  );
+}
+
 function usesAvailableAssociationDiscount(state: GameState, source: PurchaseSource): boolean {
   return (
     source === 'farmers-association' &&
@@ -115,11 +121,19 @@ function purchaseProduct(
   }
   return awaitingTurnEnd(next, {
     title,
-    lines: [`購買${product.name}，花費${cost}採購金`, `目前剩餘${nextPlayer.funds}採購金`],
+    lines: [
+      ...getLapRewardLines(state),
+      `購買${product.name}，花費${cost}採購金`,
+      `目前剩餘${nextPlayer.funds}採購金`,
+    ],
   });
 }
 
-function resolveArrival(state: GameState, random: RandomSource): GameState {
+function resolveArrival(
+  state: GameState,
+  random: RandomSource,
+  lapRewardLines: string[] = [],
+): GameState {
   const player = getCurrentPlayer(state);
   const tile = getTileByPosition(player.position);
   const arrival = `抵達${tile.name}`;
@@ -135,7 +149,7 @@ function resolveArrival(state: GameState, random: RandomSource): GameState {
         ...state,
         phase: 'awaiting-purchase',
         pendingAction: { kind: 'purchase', tileId: tile.id, productIds, source },
-        turnSummary: { title: arrival, lines: ['可購買0或1項產品'] },
+        turnSummary: { title: arrival, lines: [...lapRewardLines, '可購買0或1項產品'] },
       };
     }
     case 'market':
@@ -143,7 +157,7 @@ function resolveArrival(state: GameState, random: RandomSource): GameState {
         ...state,
         phase: 'awaiting-sale',
         pendingAction: { kind: 'sale', tileId: tile.id },
-        turnSummary: { title: arrival, lines: ['可出售0或1項持有產品'] },
+        turnSummary: { title: arrival, lines: [...lapRewardLines, '可出售0或1項持有產品'] },
       };
     case 'transport':
       return {
@@ -154,14 +168,14 @@ function resolveArrival(state: GameState, random: RandomSource): GameState {
           tileId: tile.id,
           destinationIds: [...(tile.transportDestinationIds ?? [])],
         },
-        turnSummary: { title: arrival, lines: ['可選擇一次離島特別行程'] },
+        turnSummary: { title: arrival, lines: [...lapRewardLines, '可選擇一次離島特別行程'] },
       };
     case 'event': {
       const next = replaceMarketCard(state, random);
       const card = getActiveMarketCard(next);
       return awaitingTurnEnd(next, {
         title: arrival,
-        lines: [`市場卡更新為「${card?.title ?? '無'}」`],
+        lines: [...lapRewardLines, `市場卡更新為「${card?.title ?? '無'}」`],
       });
     }
   }
@@ -240,8 +254,21 @@ export function advanceMovementStep(
   const nextMovement = { ...movement, stepIndex };
   if (stepIndex < movement.path.length) return { ...state, movement: nextMovement };
 
-  const player = { ...getCurrentPlayer(state), position: movement.destinationPosition };
-  return resolveArrival(updateCurrentPlayer({ ...state, movement: nextMovement }, player), random);
+  const currentPlayer = getCurrentPlayer(state);
+  const lapReward = movement.crossedStart ? LAP_COMPLETION_REWARD : 0;
+  const player = {
+    ...currentPlayer,
+    position: movement.destinationPosition,
+    funds: currentPlayer.funds + lapReward,
+  };
+  const lapRewardLines = lapReward
+    ? [`完成環島一圈！獲得${LAP_COMPLETION_REWARD}採購金`, `目前採購金${player.funds}`]
+    : [];
+  return resolveArrival(
+    updateCurrentPlayer({ ...state, movement: nextMovement }, player),
+    random,
+    lapRewardLines,
+  );
 }
 
 export function choosePurchase(state: GameState, productId: string): GameState {
@@ -255,7 +282,10 @@ export function skipPurchase(state: GameState): GameState {
   assertActionAllowed(state, 'awaiting-purchase', '略過採購');
   const pending = getPurchasePending(state);
   const tile = getTileById(pending.tileId);
-  return awaitingTurnEnd(state, { title: `抵達${tile.name}`, lines: ['略過採購'] });
+  return awaitingTurnEnd(state, {
+    title: `抵達${tile.name}`,
+    lines: [...getLapRewardLines(state), '略過採購'],
+  });
 }
 
 export function chooseSale(state: GameState, productId: string): GameState {
@@ -273,7 +303,7 @@ export function chooseSale(state: GameState, productId: string): GameState {
   const tile = getTileById(state.pendingAction.tileId);
   return awaitingTurnEnd(updateCurrentPlayer(state, nextPlayer), {
     title: `抵達${tile.name}`,
-    lines: [`出售${product.name}，獲得${value}採購金`],
+    lines: [...getLapRewardLines(state), `出售${product.name}，獲得${value}採購金`],
   });
 }
 
@@ -281,7 +311,10 @@ export function skipSale(state: GameState): GameState {
   assertActionAllowed(state, 'awaiting-sale', '略過出售');
   if (state.pendingAction?.kind !== 'sale') throw new Error('目前不是市場格，不能略過出售。');
   const tile = getTileById(state.pendingAction.tileId);
-  return awaitingTurnEnd(state, { title: `抵達${tile.name}`, lines: ['略過出售'] });
+  return awaitingTurnEnd(state, {
+    title: `抵達${tile.name}`,
+    lines: [...getLapRewardLines(state), '略過出售'],
+  });
 }
 
 export function chooseTransport(state: GameState, destinationTileId: string): GameState {
@@ -304,7 +337,10 @@ export function chooseTransport(state: GameState, destinationTileId: string): Ga
       destinationTileId,
       productIds: [...(destination.productIds ?? [])],
     },
-    turnSummary: { title: `前往${destination.name}`, lines: ['可購買0或1項離島產品'] },
+    turnSummary: {
+      title: `前往${destination.name}`,
+      lines: [...getLapRewardLines(state), '可購買0或1項離島產品'],
+    },
   };
 }
 
@@ -312,7 +348,10 @@ export function skipTransport(state: GameState): GameState {
   assertActionAllowed(state, 'awaiting-transport', '略過交通');
   if (state.pendingAction?.kind !== 'transport') throw new Error('目前不是交通格。');
   const tile = getTileById(state.pendingAction.tileId);
-  return awaitingTurnEnd(state, { title: `抵達${tile.name}`, lines: ['略過離島行程'] });
+  return awaitingTurnEnd(state, {
+    title: `抵達${tile.name}`,
+    lines: [...getLapRewardLines(state), '略過離島行程'],
+  });
 }
 
 export function chooseIslandPurchase(state: GameState, productId: string): GameState {
@@ -334,7 +373,10 @@ export function skipIslandPurchase(state: GameState): GameState {
   const pending = state.pendingAction;
   if (pending?.kind !== 'island-purchase') throw new Error('目前沒有離島採購選擇。');
   const destination = getTileById(pending.destinationTileId);
-  return awaitingTurnEnd(state, { title: `前往${destination.name}`, lines: ['略過離島採購'] });
+  return awaitingTurnEnd(state, {
+    title: `前往${destination.name}`,
+    lines: [...getLapRewardLines(state), '略過離島採購'],
+  });
 }
 
 export function endTurn(state: GameState, random: RandomSource = defaultRandomSource): GameState {

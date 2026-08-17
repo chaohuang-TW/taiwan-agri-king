@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STARTING_FUNDS } from '../src/game/constants';
+import { LAP_COMPLETION_REWARD, STARTING_FUNDS } from '../src/game/constants';
 import {
   advanceMovementStep,
   chooseIslandPurchase,
@@ -30,6 +30,13 @@ function atPositionBeforeRoll(state: GameState, position: number): GameState {
 
 function landOneStep(state: GameState, from: number): GameState {
   return advanceMovementStep(rollDice(atPositionBeforeRoll(state, from), zeroRandom), zeroRandom);
+}
+
+function landWithDice(state: GameState, from: number, dice: number): GameState {
+  return advanceMovementStep(
+    rollDice(atPositionBeforeRoll(state, from), () => (dice - 1) / 6),
+    zeroRandom,
+  );
 }
 
 describe('建立遊戲與移動', () => {
@@ -68,6 +75,7 @@ describe('建立遊戲與移動', () => {
     expect(rolled.lastDiceRoll).toBe(4);
     expect(rolled.movement).toMatchObject({
       path: [24, 25, 26, 0],
+      crossedStart: true,
       stepIndex: 0,
       destinationPosition: 0,
     });
@@ -84,6 +92,15 @@ describe('建立遊戲與移動', () => {
     const arrived = advanceMovementStep(moving, zeroRandom);
     expect(arrived.players[0]!.position).toBe(0);
     expect(arrived.phase).toBe('awaiting-transport');
+  });
+
+  it('只有正常移動路徑經過position 0才標記完成環島', () => {
+    expect(createMovement(26, 1).crossedStart).toBe(true);
+    expect(createMovement(25, 3).path).toEqual([26, 0, 1]);
+    expect(createMovement(25, 3).crossedStart).toBe(true);
+    expect(createMovement(24, 2).path).toEqual([25, 26]);
+    expect(createMovement(24, 2).crossedStart).toBe(false);
+    expect(createMovement(0, 6).crossedStart).toBe(false);
   });
 
   it('主路線循環永遠不進27至29', () => {
@@ -221,6 +238,70 @@ describe('採購、出售與交通', () => {
     expect(skipped.temporaryDestinationId).toBeNull();
     expect(endTurn(skipped, zeroRandom).players[0]!.position).toBe(13);
     expect(skipTransport(transport).phase).toBe('awaiting-turn-end');
+  });
+});
+
+describe('完成環島採購金獎勵', () => {
+  it('26加1經過臺北起點並在抵達前加5採購金', () => {
+    const arrived = landOneStep(createGame(1, zeroRandom), 26);
+    expect(arrived.players[0]!.funds).toBe(STARTING_FUNDS + LAP_COMPLETION_REWARD);
+    expect(arrived.players[0]!.position).toBe(0);
+    expect(arrived.phase).toBe('awaiting-transport');
+    expect(arrived.turnSummary?.lines).toContain('完成環島一圈！獲得5採購金');
+  });
+
+  it('25加3經過0並可立即用獎勵採購', () => {
+    const rolled = rollDice(atPositionBeforeRoll(createGame(1, zeroRandom), 25), () => 0.4);
+    expect(rolled.lastDiceRoll).toBe(3);
+    let moving = rolled;
+    moving = advanceMovementStep(moving, zeroRandom);
+    moving = advanceMovementStep(moving, zeroRandom);
+    expect(moving.players[0]!.funds).toBe(STARTING_FUNDS);
+    const arrived = advanceMovementStep(moving, zeroRandom);
+    expect(arrived.players[0]!.position).toBe(1);
+    expect(arrived.players[0]!.funds).toBe(STARTING_FUNDS + LAP_COMPLETION_REWARD);
+    const bought = choosePurchase(arrived, 'taoyuan-rice');
+    expect(bought.players[0]!.funds).toBe(STARTING_FUNDS + LAP_COMPLETION_REWARD - 2);
+    expect(bought.turnSummary?.lines).toContain('完成環島一圈！獲得5採購金');
+    expect(bought.turnSummary?.lines).toContain('購買桃園稻米，花費2採購金');
+  });
+
+  it('24加2、不含起始位置0、交通與離島行程都不給獎勵', () => {
+    expect(landWithDice(createGame(1, zeroRandom), 24, 2).players[0]!.funds).toBe(STARTING_FUNDS);
+    expect(landOneStep(createGame(1, zeroRandom), 0).players[0]!.funds).toBe(STARTING_FUNDS);
+    const transport = landOneStep(createGame(1, zeroRandom), 12);
+    expect(transport.players[0]!.funds).toBe(STARTING_FUNDS);
+    const island = chooseTransport(transport, 'penghu-island-stop');
+    expect(island.players[0]!.funds).toBe(STARTING_FUNDS);
+    expect(skipIslandPurchase(island).turnSummary?.lines).not.toContain(
+      '完成環島一圈！獲得5採購金',
+    );
+  });
+
+  it('每次跨過起點只獎勵一次，下一圈仍可再獲得5採購金', () => {
+    const rolled = rollDice(atPositionBeforeRoll(createGame(1, zeroRandom), 25), () => 0.4);
+    let moving = rolled;
+    moving = advanceMovementStep(moving, zeroRandom);
+    moving = advanceMovementStep(moving, zeroRandom);
+    expect(moving.players[0]!.funds).toBe(STARTING_FUNDS);
+    const first = advanceMovementStep(moving, zeroRandom);
+    expect(first.players[0]!.funds).toBe(STARTING_FUNDS + LAP_COMPLETION_REWARD);
+    expect(first.turnSummary?.lines.filter((line) => line.includes('完成環島一圈'))).toHaveLength(
+      1,
+    );
+
+    const nextLap = rollDice(
+      atPositionBeforeRoll({ ...first, phase: 'awaiting-roll', pendingAction: null }, 25),
+      () => 0.4,
+    );
+    let nextMoving = nextLap;
+    nextMoving = advanceMovementStep(nextMoving, zeroRandom);
+    nextMoving = advanceMovementStep(nextMoving, zeroRandom);
+    const second = advanceMovementStep(nextMoving, zeroRandom);
+    expect(second.players[0]!.funds).toBe(STARTING_FUNDS + LAP_COMPLETION_REWARD * 2);
+    expect(second.turnSummary?.lines.filter((line) => line.includes('完成環島一圈'))).toHaveLength(
+      1,
+    );
   });
 });
 

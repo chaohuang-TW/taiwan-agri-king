@@ -306,7 +306,13 @@ it('2,000場seeded CPU平衡模擬全部完成且經濟數值有限', () => {
   ).toBeLessThanOrEqual(0.08);
   expect(report.maxActions).toBeLessThan(5_000);
   expect(report.averageFunds).toBeGreaterThanOrEqual(0);
+  expect(report.minFinalFunds).toBeGreaterThanOrEqual(0);
+  expect(report.maxFinalFunds).toBeGreaterThanOrEqual(report.minFinalFunds);
   expect(report.averageProducts).toBeGreaterThanOrEqual(0);
+  expect(report.averageLapRewardsPerPlayer).toBeGreaterThan(0);
+  expect(
+    Object.values(report.lapCompletionDistribution).reduce((sum, value) => sum + value, 0),
+  ).toBeCloseTo(1, 8);
   expect(report.tieRate).toBeGreaterThanOrEqual(0);
   expect(report.tieRate).toBeLessThanOrEqual(1);
   expect(report.averageCompletedGoals).toBeGreaterThanOrEqual(0);

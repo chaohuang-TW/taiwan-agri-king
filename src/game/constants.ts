@@ -1,4 +1,5 @@
 export const STARTING_FUNDS = 15;
+export const LAP_COMPLETION_REWARD = 5;
 export const TOTAL_ROUNDS = 12;
 export const MAIN_ROUTE_POSITIONS = Array.from({ length: 27 }, (_, index) => index);
 export const MINIMUM_PURCHASE_COST = 1;

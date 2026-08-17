@@ -29,7 +29,11 @@ export interface BalanceTelemetry {
   medianScore: number;
   scoreStdDev: number;
   averageFunds: number;
+  minFinalFunds: number;
+  maxFinalFunds: number;
   averageProducts: number;
+  averageLapRewardsPerPlayer: number;
+  lapCompletionDistribution: Record<string, number>;
   averageCompletedGoals: number;
   averagePurchasesPerPlayer: number;
   averageSalesPerPlayer: number;
@@ -88,13 +92,17 @@ export function runBalanceSimulation(gameCount = 2_000): BalanceTelemetry {
   let ties = 0;
   let totalScore = 0;
   let totalFunds = 0;
+  let minFinalFunds = Number.POSITIVE_INFINITY;
+  let maxFinalFunds = Number.NEGATIVE_INFINITY;
   let totalProducts = 0;
+  let totalLapRewards = 0;
   let completedGoals = 0;
   let maxActions = 0;
   const finalScores: number[] = [];
   const collectionGoalCompletions = Object.fromEntries(
     COLLECTION_GOALS.map((goal) => [goal.id, 0]),
   ) as Record<string, number>;
+  const lapCompletionCounts: Record<string, number> = {};
 
   for (let seed = 1; seed <= gameCount; seed += 1) {
     const random = seededRandom(seed);
@@ -107,6 +115,7 @@ export function runBalanceSimulation(gameCount = 2_000): BalanceTelemetry {
       random,
     );
     let count = 0;
+    const lapRewardsByPlayer = [0, 0, 0, 0];
     while (state.phase !== 'game-over' && count < 5000) {
       const previous = state;
       switch (state.phase) {
@@ -114,6 +123,14 @@ export function runBalanceSimulation(gameCount = 2_000): BalanceTelemetry {
           state = rollDice(state, random);
           break;
         case 'moving':
+          if (
+            previous.movement &&
+            previous.movement.stepIndex + 1 >= previous.movement.path.length &&
+            previous.movement.crossedStart
+          ) {
+            lapRewardsByPlayer[previous.currentPlayerIndex] =
+              (lapRewardsByPlayer[previous.currentPlayerIndex] ?? 0) + 1;
+          }
           state = advanceMovementStep(state, random);
           if (state.phase === 'awaiting-turn-end' && state.turnSummary?.title.includes('抵達')) {
             const oldCard = previous.marketDeck.activeCardId;
@@ -157,11 +174,18 @@ export function runBalanceSimulation(gameCount = 2_000): BalanceTelemetry {
       totalScore += ranking.score.total;
       finalScores.push(ranking.score.total);
       totalFunds += player.funds;
+      minFinalFunds = Math.min(minFinalFunds, player.funds);
+      maxFinalFunds = Math.max(maxFinalFunds, player.funds);
       totalProducts += player.productIds.length;
       const playerCompletedGoals = getCompletedCollectionGoals(player, PRODUCTS);
       completedGoals += playerCompletedGoals.length;
       for (const goal of playerCompletedGoals)
         collectionGoalCompletions[goal.id] = (collectionGoalCompletions[goal.id] ?? 0) + 1;
+    });
+    lapRewardsByPlayer.forEach((laps) => {
+      totalLapRewards += laps;
+      const key = String(laps);
+      lapCompletionCounts[key] = (lapCompletionCounts[key] ?? 0) + 1;
     });
   }
 
@@ -186,7 +210,15 @@ export function runBalanceSimulation(gameCount = 2_000): BalanceTelemetry {
     medianScore,
     scoreStdDev: Math.sqrt(scoreVariance),
     averageFunds: totalFunds / playerCount,
+    minFinalFunds,
+    maxFinalFunds,
     averageProducts: totalProducts / playerCount,
+    averageLapRewardsPerPlayer: totalLapRewards / playerCount,
+    lapCompletionDistribution: Object.fromEntries(
+      Object.entries(lapCompletionCounts)
+        .sort(([left], [right]) => Number(left) - Number(right))
+        .map(([laps, count]) => [laps, count / playerCount]),
+    ),
     averageCompletedGoals: completedGoals / playerCount,
     averagePurchasesPerPlayer: actions.purchases / playerCount,
     averageSalesPerPlayer: actions.sales / playerCount,

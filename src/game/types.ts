@@ -114,6 +114,7 @@ export interface MovementPresentation {
   startPosition: number;
   dice: number;
   path: number[];
+  crossedStart: boolean;
   stepIndex: number;
   destinationPosition: number;
 }
